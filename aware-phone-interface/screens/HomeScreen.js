@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const apps = [
   { name: 'Phone', color: '#f54242' },
@@ -14,12 +15,11 @@ const apps = [
 ];
 
 export default function HomeScreen() {
+    const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
-      {/* Status Bar */}
-      <View style={styles.statusBar}>
-        <Text style={styles.statusText}>12:30</Text>
-      </View>
+     
 
       {/* App Grid */}
       <FlatList
@@ -28,7 +28,14 @@ export default function HomeScreen() {
         numColumns={3}
         contentContainerStyle={styles.appGrid}
         renderItem={({ item }) => (
-          <TouchableOpacity style={[styles.appIcon, { backgroundColor: item.color }]}>
+          <TouchableOpacity 
+          style={[styles.appIcon, { backgroundColor: item.color }]}
+          onPress={() => {
+            if (item.name === 'Settings') {
+              navigation.navigate('Settings');
+            }
+          }}
+          >
             <Text style={styles.appName}>{item.name}</Text>
           </TouchableOpacity>
         )}
@@ -53,19 +60,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingBottom: 10,
-  },
-  statusBar: {
-    height: 60,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    backgroundColor: '#ffffff',
   },
   appGrid: {
     flexGrow: 1,
@@ -87,8 +82,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   dock: {
-    height: 80,
-    backgroundColor: '#e0e0e0',
+    height: 90,
+    backgroundColor: '#ffffff',
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
