@@ -1,58 +1,89 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  StatusBar,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Searchbar } from 'react-native-paper'; 
 
 const apps = [
-  { name: 'Phone', color: '#f54242' },
-  { name: 'Messages', color: '#42a5f5' },
-  { name: 'Camera', color: '#66bb6a' },
-  { name: 'Photos', color: '#ffca28' },
-  { name: 'Calendar', color: '#ab47bc' },
-  { name: 'Settings', color: '#8d6e63' },
-  { name: 'Uber', color: '#546e7a' },
-  { name: 'Spotify', color: '#1db954' },
-  { name: 'Instagram', color: '#e1306c' },
+  { name: 'Phone', color: '#f54242', icon: 'call' },
+  { name: 'Messages', color: '#42a5f5', icon: 'chatbubble' },
+  { name: 'Camera', color: '#66bb6a', icon: 'camera' },
+  { name: 'Photos', color: '#ffca28', icon: 'images' },
+  { name: 'Calendar', color: '#ab47bc', icon: 'calendar' },
+  { name: 'Settings', color: '#8d6e63', icon: 'settings' },
+  { name: 'Uber', color: '#546e7a', icon: 'car' },
+  { name: 'Spotify', color: '#1db954', icon: 'musical-notes' },
+  { name: 'Instagram', color: '#e1306c', icon: 'logo-instagram' },
 ];
 
+const dockApps = [
+  { name: 'Phone', color: '#f54242', icon: 'call' },
+  { name: 'Messages', color: '#42a5f5', icon: 'chatbubble' },
+  { name: 'Safari', color: '#007aff', icon: 'compass' },
+  { name: 'Music', color: '#ff3b30', icon: 'musical-notes' },
+];
+
+const numColumns = 4;
+const screenWidth = Dimensions.get('window').width;
+const itemSize = screenWidth / numColumns - 20;
+const dockSize = screenWidth / 5;
+
 export default function HomeScreen() {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
+   const [searchQuery, setSearchQuery] = React.useState('');
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity style={[styles.item, { backgroundColor: item.color }]} onPress={() => navigation.navigate(item.name)}>
+      <Ionicons name={item.icon} size={40} color="#fff" />
+      <Text style={styles.itemText}>{item.name}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderDockItem = ({ item }) => (
+    <TouchableOpacity style={[styles.dockItem, { backgroundColor: item.color }]} onPress={() => navigation.navigate(item.name)}>
+      <Ionicons name={item.icon} size={40} color="#fff" />
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-     
-
-      {/* App Grid */}
+      <StatusBar barStyle="light-content" />
+      <Searchbar  
+        placeholder="Search"
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={styles.searchbar}
+      />
+      
       <FlatList
         data={apps}
+        renderItem={renderItem}
         keyExtractor={(item) => item.name}
-        numColumns={3}
-        contentContainerStyle={styles.appGrid}
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-          style={[styles.appIcon, { backgroundColor: item.color }]}
-          onPress={() => {
-            if (item.name === 'Settings') {
-              navigation.navigate('Settings');
-            }
-          }}
-          >
-            <Text style={styles.appName}>{item.name}</Text>
-          </TouchableOpacity>
-        )}
+        numColumns={numColumns}
+        contentContainerStyle={styles.grid}
       />
 
-      {/* Dock */}
-      <View style={styles.dock}>
-        <TouchableOpacity style={styles.dockIcon}>
-          <Text style={styles.appName}>Phone</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.dockIcon}>
-          <Text style={styles.appName}>Messages</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.dockIcon}>
-          <Text style={styles.appName}>Safari</Text>
-        </TouchableOpacity>
+      
+      <View style={styles.dockContainer}>
+       
+
+        <FlatList
+          data={dockApps}
+          renderItem={renderDockItem}
+          keyExtractor={(item) => item.name}
+          horizontal
+          contentContainerStyle={styles.dock}
+        />
       </View>
+
     </View>
   );
 }
@@ -60,42 +91,59 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'white',
+    paddingTop: 40,
   },
-  appGrid: {
-    flexGrow: 1,
+  grid: {
     justifyContent: 'center',
     paddingHorizontal: 10,
   },
-  appIcon: {
-    flex: 1,
-    height: 100,
+  item: {
+    width: itemSize,
+    height: itemSize,
+    justifyContent: 'center',
+    alignItems: 'center',
     margin: 10,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  appName: {
+  itemText: {
+    marginTop: 5,
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 12,
     textAlign: 'center',
   },
+  dockContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 10,
+    right: 10,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dock: {
-    height: 90,
-    backgroundColor: '#ffffff',
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    width: '100%',
   },
-  dockIcon: {
+  dockItem: {
+    width: dockSize,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#757575',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+    marginHorizontal: 5,
+  },
+  searchbar: {
+    backgroundColor: 'white',
+    marginLeft: 1,
   },
 });
