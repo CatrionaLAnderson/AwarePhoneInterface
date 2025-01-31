@@ -16,6 +16,7 @@ const DrunkModeScreen = ({ navigation }) => {
     { label: 'Alerts', icon: 'alert' },
     { label: 'Safety', icon: 'seatbelt' },
     { label: 'Health Recommendations', icon: 'heart' },
+    { label: 'Activity Overview', icon: 'align-vertical-bottom' },
 ];
   return (
     <ScrollView style={styles.container}>
@@ -56,8 +57,10 @@ const DrunkModeScreen = ({ navigation }) => {
                     <React.Fragment key={index}>
                         <TouchableRipple
                            onPress={() => {
-                            if (option.label === 'Drunk Mode') {
-                                navigation.navigate('DrunkModeSetting');
+                            if (option.label === 'App restricitons') {
+                                navigation.navigate('AppRestrictions');
+                            }else if (option.label === 'Contact restrictions') {
+                                navigation.navigate('ContactRestrictions');
                             }
                         }}
                             style={styles.button}

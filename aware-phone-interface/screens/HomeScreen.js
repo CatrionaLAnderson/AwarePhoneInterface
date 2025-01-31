@@ -93,10 +93,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
     paddingTop: 40,
+ 
   },
   grid: {
     justifyContent: 'center',
-    paddingHorizontal: 10,
   },
   item: {
     width: itemSize,
