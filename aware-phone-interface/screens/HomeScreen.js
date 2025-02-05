@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Searchbar } from 'react-native-paper'; 
 import { supabase } from '../lib/supabase'; // Adjust the import path for your Supabase client
+import { useDrunkMode } from "../constants/DrunkModeContext"; // Import the context
 
 const numColumns = 4;
 const screenWidth = Dimensions.get('window').width;
@@ -25,41 +26,87 @@ export default function HomeScreen() {
   const [apps, setApps] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  
+  // Global Drunk Mode state
+  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); // Use global Drunk Mode state
 
-  // Fetch apps from Supabase
+  // Fetch apps dynamically
+  const fetchApps = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('apps')
+      .select('id, app_name, icon, colour, app_restrictions (is_restricted)');
+  
+    if (error) {
+      console.error('Error fetching apps:', error);
+    } else {
+      console.log('Fetched Apps Data:', data); // Check if "colour" is being retrieved correctly
+  
+      const formattedApps = data.map((app) => ({
+        id: app.id,
+        name: app.app_name,
+        colour: app.colour || '#707B7C', // Fallback to default grey if no colour is set
+        icon: app.icon || 'help',
+        isRestricted: app.app_restrictions?.[0]?.is_restricted || false,
+      }));
+      
+      console.log('Formatted Apps Data:', formattedApps); // Log formatted apps
+  
+      setApps(formattedApps);
+    }
+    setLoading(false);
+  };
+
+  // Load apps on mount & subscribe to real-time updates
   useEffect(() => {
-    const fetchApps = async () => {
-      setLoading(true);
-      const { data, error } = await supabase.from('apps').select('id, app_name, icon');
-      if (error) {
-        console.error('Error fetching apps:', error);
-      } else {
-        const formattedApps = data.map((app, index) => ({
-          name: app.app_name,
-          color: ['#f54242', '#42a5f5', '#66bb6a', '#ffca28', '#ab47bc', '#8d6e63'][index % 6], // Optional: Add colors dynamically
-          icon: app.icon || 'help', // Use the icon from the database, fallback to a default if missing
-        }));
-        setApps(formattedApps);
-      }
-      setLoading(false);
-    };
+    fetchApps(); // Initial fetch
 
-    fetchApps();
+    // Wait for changes in `app_restrictions`
+    const subscription = supabase
+      .channel('realtime app_restrictions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_restrictions' }, fetchApps)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription); // Cleanup on unmount
+    };
   }, []);
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.item, { backgroundColor: item.color || '#8d6e63' }]} // Use default color if not provided
-      onPress={() => navigation.navigate(item.name)}
-    >
-      <Ionicons name={item.icon} size={40} color="#fff" />
-      <Text style={styles.itemText}>{item.name}</Text>
-    </TouchableOpacity>
+  // // Toggle Drunk Mode and refetch apps
+  // const toggleDrunkMode = () => {
+  //   setIsDrunkMode((prev) => !prev);
+  //   fetchApps(); // Ensure restrictions update immediately
+  // };
+
+  // Filter apps based on Drunk Mode
+  const visibleApps = apps.filter((app) =>
+    app.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const renderItem = ({ item }) => {
+    const isDisabled = isDrunkMode && item.isRestricted;
+  
+    console.log(`Rendering ${item.name}: ${item.colour}`); // Log colour for each app
+  
+    return (
+      <TouchableOpacity
+        style={[
+          styles.item,
+          { backgroundColor: item.colour || '#707B7C', opacity: isDisabled ? 0.5 : 1 }, // Ensure "colour" is applied
+        ]}
+        onPress={() => !isDisabled && navigation.navigate(item.name)}
+        disabled={isDisabled}
+      >
+        <Ionicons name={item.icon} size={40} color="#fff" />
+        <Text style={styles.itemText}>{item.name}</Text>
+      </TouchableOpacity>
+    );
+  };
+
 
   const renderDockItem = ({ item }) => (
     <TouchableOpacity
-      style={[styles.dockItem, { backgroundColor: item.color }]}
+      style={[styles.dockItem, { backgroundColor: item.colour || '#707B7C' }]} // Use "colour" instead of "color"
       onPress={() => navigation.navigate(item.name)}
     >
       <Ionicons name={item.icon} size={40} color="#fff" />
@@ -76,25 +123,35 @@ export default function HomeScreen() {
         style={styles.searchbar}
       />
 
+      {/*Drunk Mode Toggle*/}
+      <View style={styles.drunkModeContainer}>
+        <Text style={styles.drunkModeText}>Drunk Mode</Text>
+        <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
+          <Text style={styles.drunkModeButtonText}>
+            {isDrunkMode ? 'ON' : 'OFF'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* App Grid */}
       {loading ? (
         <Text style={styles.loadingText}>Loading apps...</Text>
       ) : (
         <FlatList
-          data={apps.filter((app) =>
-            app.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )}
+          data={visibleApps}
           renderItem={renderItem}
-          keyExtractor={(item) => item.name}
+          keyExtractor={(item) => item.id}
           numColumns={numColumns}
           contentContainerStyle={styles.grid}
         />
       )}
 
+      {/* Dock Apps */}
       <View style={styles.dockContainer}>
         <FlatList
-          data={apps.slice(0, 4)} // Show the first 4 apps in the dock as an example
+          data={visibleApps.slice(0, 4)} // Show first 4 apps
           renderItem={renderDockItem}
-          keyExtractor={(item) => item.name}
+          keyExtractor={(item) => item.id}
           horizontal
           contentContainerStyle={styles.dock}
         />
@@ -165,5 +222,28 @@ const styles = StyleSheet.create({
     color: 'gray',
     textAlign: 'center',
     marginTop: 20,
+  },
+  drunkModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    marginHorizontal: 20,
+    marginVertical: 10,
+  },
+  drunkModeText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  drunkModeButton: {
+    backgroundColor: 'blue',
+    padding: 8,
+    borderRadius: 5,
+  },
+  drunkModeButtonText: {
+    color: 'white',
+    fontSize: 16,
   },
 });

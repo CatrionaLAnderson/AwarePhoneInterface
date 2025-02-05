@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   ScrollView,
@@ -10,11 +10,10 @@ import {
 import { Card, Title, Paragraph, List, TouchableRipple } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { supabase } from "../lib/supabase"; // Adjust import path as needed
+import { useDrunkMode } from "../constants/DrunkModeContext"; // Import the context
 
 const DrunkModeScreen = ({ navigation }) => {
-  const [drunkMode, setDrunkMode] = useState(false);
-  const [loading, setLoading] = useState(false); // For visual feedback during data fetch
+  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); // Access global state
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
@@ -27,32 +26,6 @@ const DrunkModeScreen = ({ navigation }) => {
     { label: "Health Recommendations", icon: "heart" },
     { label: "Activity Overview", icon: "align-vertical-bottom" },
   ];
-
-  const toggleDrunkMode = async () => {
-    if (loading) return; // Prevent multiple toggles while loading
-    setDrunkMode((prev) => !prev);
-
-    if (!drunkMode) {
-      // Activate Drunk Mode
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("app_restrictions")
-        .select("app_id, is_restricted")
-        .eq("is_restricted", true);
-
-      if (error) {
-        console.error("Error fetching restricted apps:", error);
-      } else {
-        console.log("Restricted Apps:", data);
-        // Apply restrictions here (e.g., disable apps in the UI)
-      }
-      setLoading(false);
-    } else {
-      // Deactivate Drunk Mode
-      console.log("Drunk Mode deactivated. Restoring normal settings...");
-      // Restore normal settings logic here
-    }
-  };
 
   return (
     <ScrollView style={styles.container}>
@@ -82,9 +55,8 @@ const DrunkModeScreen = ({ navigation }) => {
         style={styles.drunkButton}
         right={() => (
           <Switch
-            value={drunkMode}
-            onValueChange={toggleDrunkMode}
-            disabled={loading} // Disable while loading
+            value={isDrunkMode}
+            onValueChange={toggleDrunkMode} // Toggle global Drunk Mode
           />
         )}
       />
