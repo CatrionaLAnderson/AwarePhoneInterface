@@ -40,18 +40,16 @@ export default function HomeScreen() {
     if (error) {
       console.error('Error fetching apps:', error);
     } else {
-      console.log('Fetched Apps Data:', data); // Check if "colour" is being retrieved correctly
+      console.log('Fetched Apps Data:', data);
   
       const formattedApps = data.map((app) => ({
         id: app.id,
         name: app.app_name,
-        colour: app.colour || '#707B7C', // Fallback to default grey if no colour is set
+        colour: app.colour || '#707B7C',
         icon: app.icon || 'help',
         isRestricted: app.app_restrictions?.[0]?.is_restricted || false,
       }));
       
-      console.log('Formatted Apps Data:', formattedApps); // Log formatted apps
-  
       setApps(formattedApps);
     }
     setLoading(false);
@@ -61,38 +59,30 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchApps(); // Initial fetch
 
-    // Wait for changes in `app_restrictions`
     const subscription = supabase
       .channel('realtime app_restrictions')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_restrictions' }, fetchApps)
       .subscribe();
 
     return () => {
-      supabase.removeChannel(subscription); // Cleanup on unmount
+      supabase.removeChannel(subscription);
     };
   }, []);
-
-  // // Toggle Drunk Mode and refetch apps
-  // const toggleDrunkMode = () => {
-  //   setIsDrunkMode((prev) => !prev);
-  //   fetchApps(); // Ensure restrictions update immediately
-  // };
 
   // Filter apps based on Drunk Mode
   const visibleApps = apps.filter((app) =>
     app.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
 
   const renderItem = ({ item }) => {
     const isDisabled = isDrunkMode && item.isRestricted;
-  
-    console.log(`Rendering ${item.name}: ${item.colour}`); // Log colour for each app
   
     return (
       <TouchableOpacity
         style={[
           styles.item,
-          { backgroundColor: item.colour || '#707B7C', opacity: isDisabled ? 0.5 : 1 }, // Ensure "colour" is applied
+          { backgroundColor: item.colour || '#707B7C', opacity: isDisabled ? 0.5 : 1 },
         ]}
         onPress={() => !isDisabled && navigation.navigate(item.name)}
         disabled={isDisabled}
@@ -103,10 +93,9 @@ export default function HomeScreen() {
     );
   };
 
-
   const renderDockItem = ({ item }) => (
     <TouchableOpacity
-      style={[styles.dockItem, { backgroundColor: item.colour || '#707B7C' }]} // Use "colour" instead of "color"
+      style={[styles.dockItem, { backgroundColor: item.colour || '#707B7C' }]}
       onPress={() => navigation.navigate(item.name)}
     >
       <Ionicons name={item.icon} size={40} color="#fff" />
@@ -123,7 +112,7 @@ export default function HomeScreen() {
         style={styles.searchbar}
       />
 
-      {/*Drunk Mode Toggle*/}
+      {/* Drunk Mode Toggle */}
       <View style={styles.drunkModeContainer}>
         <Text style={styles.drunkModeText}>Drunk Mode</Text>
         <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
@@ -132,6 +121,8 @@ export default function HomeScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+
 
       {/* App Grid */}
       {loading ? (
@@ -149,7 +140,7 @@ export default function HomeScreen() {
       {/* Dock Apps */}
       <View style={styles.dockContainer}>
         <FlatList
-          data={visibleApps.slice(0, 4)} // Show first 4 apps
+          data={visibleApps.slice(0, 4)}
           renderItem={renderDockItem}
           keyExtractor={(item) => item.id}
           horizontal

@@ -70,6 +70,8 @@ const DrunkModeScreen = ({ navigation }) => {
                 navigation.navigate("AppRestrictions");
               } else if (option.label === "Contact restrictions") {
                 navigation.navigate("ContactRestrictions");
+              } else if (option.label === "Alerts") {
+                navigation.navigate("Alerts");
               }
             }}
             style={styles.button}
