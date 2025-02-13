@@ -6,6 +6,7 @@ import AppRestrictions from "../screens/settingScreens/AppRestrictions";
 import ContactRestrictions from "../screens/settingScreens/ContactRestrictions";
 import Alerts from "../screens/settingScreens/Alerts";
 import NotificationRestrictions from "../screens/settingScreens/NotificationRestrictions";
+import HealthRecommendations from "@/screens/settingScreens/HealthRecommendations";
 
 export default function Index() {
   return (
@@ -16,6 +17,7 @@ export default function Index() {
       <AppRestrictions navigation={{}}/>
       <ContactRestrictions navigation={{}}/>
       <NotificationRestrictions navigation={{}}/>
+      <HealthRecommendations navigation={{}}/>
       <Alerts navigation={{}}/>
     </div>
   );
