@@ -7,6 +7,7 @@ import SettingScreen from '../screens/SettingScreen';
 import DrunkModeSetting from '../screens/DrunkModeSetting';
 import AppRestrictions from '../screens/settingScreens/AppRestrictions';
 import ContactRestrictions from '../screens/settingScreens/ContactRestrictions';
+import NotificationRestrictions from '../screens/settingScreens/NotificationRestrictions';
 import Alerts from '../screens/settingScreens/Alerts';
 import { DrunkModeProvider } from '../constants/DrunkModeContext';
 import * as Notifications from 'expo-notifications';
@@ -60,6 +61,7 @@ export default function Layout() {
             <Stack.Screen name="DrunkModeSetting" component={DrunkModeSetting} />
             <Stack.Screen name="AppRestrictions" component={AppRestrictions} />
             <Stack.Screen name="ContactRestrictions" component={ContactRestrictions} />
+            <Stack.Screen name="NotificationRestrictions" component={NotificationRestrictions} />
             <Stack.Screen name="Alerts" component={Alerts} />
           </Stack.Navigator>
         </SafeAreaView>
