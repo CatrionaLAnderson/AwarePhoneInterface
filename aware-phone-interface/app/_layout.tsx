@@ -9,8 +9,10 @@ import AppRestrictions from '../screens/settingScreens/AppRestrictions';
 import ContactRestrictions from '../screens/settingScreens/ContactRestrictions';
 import NotificationRestrictions from '../screens/settingScreens/NotificationRestrictions';
 import HealthRecommendations from '../screens/settingScreens/HealthRecommendations';
+import SafetySettings from '../screens/settingScreens/SafetySettings';
 import Alerts from '../screens/settingScreens/Alerts';
 import { DrunkModeProvider } from '../constants/DrunkModeContext';
+import PhoneApp from '../screens/PhoneApp';
 import * as Notifications from 'expo-notifications';
 
 // Create stack navigator
@@ -64,7 +66,9 @@ export default function Layout() {
             <Stack.Screen name="ContactRestrictions" component={ContactRestrictions} />
             <Stack.Screen name="NotificationRestrictions" component={NotificationRestrictions} />
             <Stack.Screen name="HealthRecommendations" component={HealthRecommendations} />
+            <Stack.Screen name="SafetySettings" component={SafetySettings} />
             <Stack.Screen name="Alerts" component={Alerts} />
+            <Stack.Screen name="Phone" component={PhoneApp} />
           </Stack.Navigator>
         </SafeAreaView>
       </PaperProvider>

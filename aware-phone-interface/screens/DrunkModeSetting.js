@@ -76,6 +76,8 @@ const DrunkModeScreen = ({ navigation }) => {
                 navigation.navigate("NotificationRestrictions");
               } else if (option.label === "Health Recommendations"){
                 navigation.navigate("HealthRecommendations");
+              } else if (option.label === "Safety"){
+                navigation.navigate("SafetySettings");
               }
             }}
             style={styles.button}
