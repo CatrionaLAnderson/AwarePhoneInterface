@@ -10,10 +10,11 @@ import {
 import { Card, Title, Paragraph, List, TouchableRipple } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useDrunkMode } from "../constants/DrunkModeContext"; // Import the context
+import { useDrunkMode } from "../constants/DrunkModeContext";
 
 const DrunkModeScreen = ({ navigation }) => {
-  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); // Access global state
+  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); // Use the global context
+  
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
@@ -64,32 +65,32 @@ const DrunkModeScreen = ({ navigation }) => {
       {/* Drunk Mode Options */}
       {drunkOptions.map((option, index) => (
         <React.Fragment key={index}>
-          <TouchableRipple
-            onPress={() => {
-              if (option.label === "App restrictions") {
-                navigation.navigate("AppRestrictions");
-              } else if (option.label === "Contact restrictions") {
-                navigation.navigate("ContactRestrictions");
-              } else if (option.label === "Alerts") {
-                navigation.navigate("Alerts");
-              } else if (option.label === "Notifications"){
-                navigation.navigate("NotificationRestrictions");
-              } else if (option.label === "Health Recommendations"){
-                navigation.navigate("HealthRecommendations");
-              } else if (option.label === "Safety"){
-                navigation.navigate("SafetySettings");
-              }
-            }}
-            style={styles.button}
-          >
-            <View style={styles.buttonContent}>
-              <Icon name={option.icon} size={24} color="#000" style={styles.icon} />
-              <Text style={styles.text}>{option.label}</Text>
-              <Ionicons name="arrow-forward" size={24} color="lightgrey" style={styles.icon2} />
-            </View>
-          </TouchableRipple>
-          {(index + 1) % 4 === 0 && <View style={styles.gap} />}
-        </React.Fragment>
+        <TouchableRipple
+          onPress={() => {
+            if (option.label === "App restrictions") {
+              navigation.navigate("AppRestrictions");
+            } else if (option.label === "Contact restrictions") {
+              navigation.navigate("ContactRestrictions");
+            } else if (option.label === "Alerts") {
+              navigation.navigate("Alerts");
+            } else if (option.label === "Notifications"){
+              navigation.navigate("NotificationRestrictions");
+            } else if (option.label === "Health Recommendations"){
+              navigation.navigate("HealthRecommendations");
+            } else if (option.label === "Safety"){
+              navigation.navigate("SafetySettings");
+            }
+          }}
+          style={styles.button}
+        >
+          <View style={styles.buttonContent}>
+            <Icon name={option.icon} size={24} color="#000" style={styles.icon} />
+            <Text style={styles.text}>{option.label}</Text>
+            <Ionicons name="arrow-forward" size={24} color="lightgrey" style={styles.icon2} />
+          </View>
+        </TouchableRipple>
+        {(index + 1) % 4 === 0 && <View style={styles.gap} />}
+      </React.Fragment>
       ))}
     </ScrollView>
   );

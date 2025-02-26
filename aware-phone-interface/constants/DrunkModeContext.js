@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
+import DrunkModeService from "../services/DrunkModeService"; // Import service
 
 // Create the context
 const DrunkModeContext = createContext();
@@ -7,8 +8,20 @@ const DrunkModeContext = createContext();
 export const DrunkModeProvider = ({ children }) => {
   const [isDrunkMode, setIsDrunkMode] = useState(false);
 
-  const toggleDrunkMode = () => {
-    setIsDrunkMode((prev) => !prev);
+  // Load Drunk Mode status from storage on app start
+  useEffect(() => {
+    const loadDrunkModeStatus = async () => {
+      const status = await DrunkModeService.getDrunkModeStatus();
+      setIsDrunkMode(status);
+    };
+    loadDrunkModeStatus();
+  }, []);
+
+  // Toggle Drunk Mode and persist the change
+  const toggleDrunkMode = async () => {
+    const newStatus = !isDrunkMode;
+    setIsDrunkMode(newStatus);
+    await DrunkModeService.toggleDrunkMode(newStatus);
   };
 
   return (
