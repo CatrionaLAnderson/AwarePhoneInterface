@@ -45,45 +45,48 @@ const AppRestrictions = ({ navigation }) => {
   }, []);
 
   const handleToggle = async (appId, isRestricted) => {
-    console.log('Toggling restriction for:', appId, 'New Status:', isRestricted);
-  
-    // Check if the app already has a restriction entry
-    const { data: existingEntry, error: fetchError } = await supabase
+  console.log('Toggling restriction for:', appId, 'New Status:', isRestricted);
+
+  // Optimistically update UI first
+  setApps((prevApps) =>
+    prevApps.map((app) =>
+      app.id === appId ? { ...app, isRestricted } : app
+    )
+  );
+
+  // Check if the app already has a restriction entry
+  const { data: existingEntry, error: fetchError } = await supabase
+    .from('app_restrictions')
+    .select('id')
+    .eq('app_id', appId)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error('Error checking existing restriction:', fetchError);
+    return;
+  }
+
+  if (existingEntry) {
+    // UPDATE if the row already exists
+    const { error: updateError } = await supabase
       .from('app_restrictions')
-      .select('id')
-      .eq('app_id', appId)
-      .maybeSingle();
-  
-    if (fetchError) {
-      console.error('Error checking existing restriction:', fetchError);
-      return;
+      .update({ is_restricted: isRestricted })
+      .eq('app_id', appId);
+
+    if (updateError) {
+      console.error('Error updating app restriction:', updateError);
     }
-  
-    if (existingEntry) {
-      // UPDATE if the row already exists
-      const { error: updateError } = await supabase
-        .from('app_restrictions')
-        .update({ is_restricted: isRestricted })
-        .eq('app_id', appId);
-  
-      if (updateError) {
-        console.error('Error updating app restriction:', updateError);
-      } else {
-        console.log('Successfully updated restriction.');
-      }
-    } else {
-      // INSERT if the row does not exist
-      const { error: insertError } = await supabase
-        .from('app_restrictions')
-        .insert([{ app_id: appId, is_restricted: isRestricted }]);
-  
-      if (insertError) {
-        console.error('Error inserting new restriction:', insertError);
-      } else {
-        console.log('Successfully added new restriction.');
-      }
+  } else {
+    // INSERT if the row does not exist
+    const { error: insertError } = await supabase
+      .from('app_restrictions')
+      .insert([{ app_id: appId, is_restricted: isRestricted }]);
+
+    if (insertError) {
+      console.error('Error inserting new restriction:', insertError);
     }
-  };
+  }
+};
 
   // Render each app with a toggle
   const renderItem = ({ item }) => (
