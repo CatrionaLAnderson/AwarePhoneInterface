@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { 
   View, Text, FlatList, StyleSheet, TouchableOpacity, Modal 
-} from 'react-native';
-import { supabase } from '../lib/supabase';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useDrunkMode } from "../constants/DrunkModeContext"; // Import Drunk Mode context
+} from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { useDrunkMode } from "@/constants/DrunkModeContext"; // Import Drunk Mode context
+import { fetchContactsWithRestrictions } from "@/services/ContactService"; // Import contact service
 
 const PhoneApp = ({ navigation }) => {
   const { isDrunkMode } = useDrunkMode(); // Use global drunk mode state
 
-  const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || 'Back';
+  const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
   const [contacts, setContacts] = useState([]);
   const [restrictedContacts, setRestrictedContacts] = useState(new Set()); // Use a Set for fast lookup
@@ -17,33 +17,18 @@ const PhoneApp = ({ navigation }) => {
   const [currentContact, setCurrentContact] = useState(null);
 
   useEffect(() => {
-    const fetchContacts = async () => {
-      const { data, error } = await supabase.from('contacts').select('*');
-      if (!error) {
-        console.log("📞 Fetched Contacts:", data); // Debug log
-        setContacts(data);
-      }
+    const loadContacts = async () => {
+      const fetchedContacts = await fetchContactsWithRestrictions();
+      setContacts(fetchedContacts);
+
+      // Extract and store restricted contacts in a Set
+      const blockedContacts = new Set(
+        fetchedContacts.filter((contact) => contact.isBlocked).map((contact) => contact.id)
+      );
+      setRestrictedContacts(blockedContacts);
     };
 
-    const fetchRestrictedContacts = async () => {
-      const { data, error } = await supabase
-        .from('contact_restrictions')
-        .select('contact_id, is_blocked');
-
-      if (!error) {
-        console.log("🚫 Fetched Restricted Contacts:", data); // Debug log
-
-        // Filter only contacts where `is_blocked` is TRUE
-        const blockedContacts = new Set(
-          data.filter(contact => contact.is_blocked).map(contact => contact.contact_id)
-        );
-
-        setRestrictedContacts(blockedContacts);
-      }
-    };
-
-    fetchContacts();
-    fetchRestrictedContacts();
+    loadContacts();
   }, []);
 
   const handleCallPress = (contact) => {
@@ -53,20 +38,20 @@ const PhoneApp = ({ navigation }) => {
 
   const renderItem = ({ item }) => {
     const isRestricted = restrictedContacts.has(item.id) && isDrunkMode; // Only block if in Drunk Mode
-    console.log(`🔍 Checking contact ${item.contact_name} (ID: ${item.id}):`, isRestricted ? "Restricted" : "Not Restricted"); // Debug log
+    console.log(`🔍 Checking contact ${item.name} (ID: ${item.id}):`, isRestricted ? "Restricted" : "Not Restricted"); // Debug log
 
     return (
       <View style={[styles.contactItem, isRestricted && styles.restricted]}>
         <View style={styles.contactInfo}>
-          <Text style={styles.contactName}>{item.contact_name}</Text>
-          <Text style={styles.phoneNumber}>{item.phone_number}</Text>
+          <Text style={styles.contactName}>{item.name}</Text>
+          <Text style={styles.phoneNumber}>{item.phoneNumber}</Text>
         </View>
         <TouchableOpacity 
           style={[styles.callButton, isRestricted && styles.disabledButton]} 
           onPress={() => handleCallPress(item)} 
           disabled={isRestricted}
         >
-          <Ionicons name="call" size={20} color={isRestricted ? '#999' : '#fff'} />
+          <Ionicons name="call" size={20} color={isRestricted ? "#999" : "#fff"} />
         </TouchableOpacity>
       </View>
     );
@@ -82,17 +67,13 @@ const PhoneApp = ({ navigation }) => {
 
       <Text style={styles.header}>Phone</Text>
 
-      <FlatList
-        data={contacts}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-      />
+      <FlatList data={contacts} keyExtractor={(item) => item.id.toString()} renderItem={renderItem} />
 
       {/* Modal for Calling */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.callingText}>Calling {currentContact?.contact_name}...</Text>
+            <Text style={styles.callingText}>Calling {currentContact?.name}...</Text>
             <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.exitButton}>
               <Text style={styles.exitButtonText}>Exit</Text>
             </TouchableOpacity>

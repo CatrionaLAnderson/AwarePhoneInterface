@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"; // Adjust path if needed
+import { supabase } from "../lib/supabase"; // Adjust path if needed
 
 export const fetchContactsWithRestrictions = async () => {
   const { data, error } = await supabase
