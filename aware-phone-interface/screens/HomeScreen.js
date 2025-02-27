@@ -84,6 +84,15 @@ export default function HomeScreen() {
     );
   };
 
+  const renderDockItem = ({ item }) => (
+    <TouchableOpacity
+      style={[styles.dockItem, { backgroundColor: item.colour || '#707B7C' }]}
+      onPress={() => navigation.navigate(item.name)}
+    >
+      <Ionicons name={item.icon} size={40} color="#fff" />
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -114,6 +123,18 @@ export default function HomeScreen() {
           contentContainerStyle={styles.grid}
         />
       )}
+
+
+      {/* Dock Apps */}
+      <View style={styles.dockContainer}>
+        <FlatList
+          data={visibleApps.slice(0, 4)}
+          renderItem={renderDockItem}
+          keyExtractor={(item) => item.id}
+          horizontal
+          contentContainerStyle={styles.dock}
+        />
+      </View>
     </View>
   );
 }
