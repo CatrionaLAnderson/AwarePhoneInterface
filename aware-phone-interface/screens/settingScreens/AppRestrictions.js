@@ -18,16 +18,14 @@ const AppRestrictions = ({ navigation }) => {
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
-  useEffect(() => {
-    const loadApps = async () => {
-      setLoading(true);
-      const fetchedApps = await fetchAppsWithRestrictions();
-      setApps(fetchedApps);
-      setLoading(false);
-    };
-
-    loadApps();
-  }, []);
+    useEffect(() => {
+      const loadApps = async () => {
+        setLoading(true);
+        setApps(await fetchAppsWithRestrictions(apps)); // Pass existing apps for merging
+        setLoading(false);
+      };
+      loadApps();
+    }, []);
 
   const handleToggle = async (appId, isRestricted) => {
     const success = await toggleAppRestriction(appId, isRestricted);

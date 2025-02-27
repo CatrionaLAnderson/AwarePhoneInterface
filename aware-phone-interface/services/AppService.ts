@@ -1,19 +1,26 @@
 import { supabase } from "@/lib/supabase"; // Adjust the path if needed
 
-export const fetchAppsWithRestrictions = async () => {
+// Define an interface for TypeScript safety
+interface App {
+  id: string;
+  name: string;
+  isRestricted: boolean;
+}
+
+export const fetchAppsWithRestrictions = async (existingApps: App[] = []): Promise<App[]> => {
   const { data, error } = await supabase
-    .from("apps")
-    .select("id, app_name, app_restrictions (is_restricted)");
+    .from("app_restrictions")
+    .select("app_id, is_restricted");
 
   if (error) {
-    console.error("Error fetching apps:", error);
-    return [];
+    console.error("Error fetching app restrictions:", error);
+    return existingApps; // If an error occurs, return the previous state
   }
 
-  return data.map((app) => ({
-    id: app.id,
-    name: app.app_name,
-    isRestricted: app.app_restrictions?.[0]?.is_restricted || false,
+  // ✅ Merge restrictions with existing apps (to avoid full refetch)
+  return existingApps.map((app) => ({
+    ...app,
+    isRestricted: data.find((restriction) => restriction.app_id === app.id)?.is_restricted || false,
   }));
 };
 

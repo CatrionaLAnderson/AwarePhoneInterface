@@ -59,16 +59,15 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchApps(); // Fetch apps on mount
   
-    // Subscribe to Supabase real-time updates for app_restrictions
     const subscription = supabase
-      .channel('realtime app_restrictions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_restrictions' }, fetchApps)
-      .subscribe();
-  
+    .channel("realtime app_restrictions")
+    .on("postgres_changes", { event: "*", schema: "public", table: "app_restrictions" }, fetchApps)
+    .subscribe();
+
     return () => {
-      supabase.removeChannel(subscription); // Cleanup on unmount
+      supabase.removeChannel(subscription);
     };
-  }, [isDrunkMode]); // 🔥 Re-fetch apps when Drunk Mode changes
+  }, [isDrunkMode]); //  Re-fetch apps when Drunk Mode changes
 
   // Filter apps based on Drunk Mode
   const visibleApps = apps.filter((app) =>
