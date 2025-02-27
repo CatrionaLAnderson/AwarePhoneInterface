@@ -1,4 +1,23 @@
-import { supabase } from "../lib/supabase"; // Adjust path if needed
+import { supabase } from "@/lib/supabase"; 
+
+
+// Fetch all contacts from "contacts" table (without restrictions)
+export const fetchAllContacts = async () => {
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("id, contact_name, phone_number");
+
+  if (error) {
+    console.error("Error fetching contacts:", error);
+    return [];
+  }
+
+  return data.map((contact) => ({
+    id: contact.id,
+    name: contact.contact_name,
+    phoneNumber: contact.phone_number,
+  }));
+};
 
 export const fetchContactsWithRestrictions = async () => {
   const { data, error } = await supabase

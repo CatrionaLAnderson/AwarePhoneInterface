@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-} from 'react-native';
-import { Dropdown } from 'react-native-element-dropdown';
-import { Card, Title, Paragraph, List, Button } from 'react-native-paper';
-import { supabase } from '../../lib/supabase';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+} from "react-native";
+import { Dropdown } from "react-native-element-dropdown";
+import { Card, Title, Paragraph, Button } from "react-native-paper";
+import { fetchAllContacts } from "@/services/ContactService"; // Import from service
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { supabase } from "@/lib/supabase"; // Keep for saving settings
 
-const SafetySettings = ({navigation}) => {
+const SafetySettings = ({ navigation }) => {
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
@@ -20,28 +21,27 @@ const SafetySettings = ({navigation}) => {
   const [selectedEmergencyContact, setSelectedEmergencyContact] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [transportMode, setTransportMode] = useState(null);
+
   const transportOptions = [
-    { label: 'Public Transport', value: 'public' },
-    { label: 'Private Transport', value: 'private' },
+    { label: "Public Transport", value: "public" },
+    { label: "Private Transport", value: "private" },
   ];
 
   useEffect(() => {
-    const fetchContacts = async () => {
-      const { data, error } = await supabase.from('contacts').select('*');
-      if (error) {
-        console.error('Error fetching contacts:', error);
-      } else {
-        setContacts(data.map((contact) => ({
-          label: contact.contact_name,
+    const loadContacts = async () => {
+      const fetchedContacts = await fetchAllContacts();
+      setContacts(
+        fetchedContacts.map((contact) => ({
+          label: contact.name,
           value: contact.id,
-        })));
-      }
+        }))
+      );
     };
-    fetchContacts();
+    loadContacts();
   }, []);
 
   const saveSettings = async () => {
-    const { error } = await supabase.from('safety_settings').upsert([
+    const { error } = await supabase.from("safety_settings").upsert([
       {
         emergency_contact_id: selectedEmergencyContact,
         designated_driver_id: selectedDriver,
@@ -49,36 +49,32 @@ const SafetySettings = ({navigation}) => {
       },
     ]);
     if (error) {
-      Alert.alert('Error', 'Failed to save safety settings.');
+      Alert.alert("Error", "Failed to save safety settings.");
     } else {
-      Alert.alert('Success', 'Safety settings saved successfully!');
+      Alert.alert("Success", "Safety settings saved successfully!");
     }
   };
 
   return (
     <ScrollView style={styles.container}>
-
-    {/* Back Button & Title */}
-    <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-              >
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{`${previousRouteName}`}</Text>
-    </TouchableOpacity>
+      </TouchableOpacity>
 
-    {/* Header Card */}
-          <Card style={styles.card}>
-            <Card.Content style={styles.cardContent}>
-              <Ionicons name="shield-outline" size={50} style={styles.icon} />
-              <Title style={styles.title}>Safety</Title>
-              <Paragraph style={styles.paragraph}>
-                Please input the details below to improve your safety
-              </Paragraph>
-            </Card.Content>
-          </Card>
+      {/* Header Card */}
+      <Card style={styles.card}>
+        <Card.Content style={styles.cardContent}>
+          <Ionicons name="shield-outline" size={50} style={styles.icon} />
+          <Title style={styles.title}>Safety</Title>
+          <Paragraph style={styles.paragraph}>
+            Please input the details below to improve your safety
+          </Paragraph>
+        </Card.Content>
+      </Card>
 
-
+      {/* Emergency Contact Dropdown */}
       <Text style={styles.label}>Select Emergency Contact</Text>
       <Dropdown
         data={contacts}
@@ -90,6 +86,7 @@ const SafetySettings = ({navigation}) => {
         style={styles.dropdown}
       />
 
+      {/* Designated Driver Dropdown */}
       <Text style={styles.label}>Select Designated Driver</Text>
       <Dropdown
         data={contacts}
@@ -101,6 +98,7 @@ const SafetySettings = ({navigation}) => {
         style={styles.dropdown}
       />
 
+      {/* Transport Mode Dropdown */}
       <Text style={styles.label}>Select Transport Mode</Text>
       <Dropdown
         data={transportOptions}
