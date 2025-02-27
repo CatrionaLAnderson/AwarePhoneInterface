@@ -9,7 +9,7 @@ import {
   FlatList,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { fetchAppsWithRestrictions, toggleAppRestriction } from "@/services/AppService";
+import { fetchAllApps, fetchAppRestrictions, toggleAppRestriction } from "@/services/AppService";
 
 const AppRestrictions = ({ navigation }) => {
   const [apps, setApps] = useState([]);
@@ -21,9 +21,16 @@ const AppRestrictions = ({ navigation }) => {
     useEffect(() => {
       const loadApps = async () => {
         setLoading(true);
-        setApps(await fetchAppsWithRestrictions(apps)); // Pass existing apps for merging
+        try {
+          const allApps = await fetchAllApps();
+          const updatedApps = await fetchAppRestrictions(allApps);
+          setApps(updatedApps); // Only update apps **after** merging restrictions
+        } catch (error) {
+          console.error("Error loading apps:", error);
+        }
         setLoading(false);
       };
+    
       loadApps();
     }, []);
 

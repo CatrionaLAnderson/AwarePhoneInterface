@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,83 +7,74 @@ import {
   FlatList,
   Dimensions,
   StatusBar,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Searchbar } from 'react-native-paper'; 
-import { supabase } from '../lib/supabase'; // Adjust the import path for your Supabase client
-import { useDrunkMode } from "../constants/DrunkModeContext"; // Import the context
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { Searchbar } from "react-native-paper"; 
+import { useDrunkMode } from "@/constants/DrunkModeContext"; 
+import { fetchAllApps, fetchAppRestrictions, subscribeToAppRestrictions } from "@/services/AppService"; 
 
 const numColumns = 4;
-const screenWidth = Dimensions.get('window').width;
+const screenWidth = Dimensions.get("window").width;
 const itemSize = screenWidth / numColumns - 20;
 const dockSize = screenWidth / 5;
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); 
 
-  // State for apps and search query
   const [apps, setApps] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  
-  // Global Drunk Mode state
-  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); // Use global Drunk Mode state
 
-  // Fetch apps dynamically
-  const fetchApps = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('apps')
-      .select('id, app_name, icon, colour, app_restrictions (is_restricted)');
-  
-    if (error) {
-      console.error('Error fetching apps:', error);
-    } else {
-      console.log('Fetched Apps Data:', data);
-  
-      const formattedApps = data.map((app) => ({
-        id: app.id,
-        name: app.app_name,
-        colour: app.colour || '#707B7C',
-        icon: app.icon || 'help',
-        isRestricted: app.app_restrictions?.[0]?.is_restricted || false,
-      }));
-      
-      setApps(formattedApps);
-    }
-    setLoading(false);
-  };
-
-  // Load apps on mount & subscribe to real-time updates
+  // Load ALL apps (only once)
   useEffect(() => {
-    fetchApps(); // Fetch apps on mount
-  
-    const subscription = supabase
-    .channel("realtime app_restrictions")
-    .on("postgres_changes", { event: "*", schema: "public", table: "app_restrictions" }, fetchApps)
-    .subscribe();
+    const loadApps = async () => {
+      setLoading(true);
+      const fetchedApps = await fetchAllApps();
+      setApps(fetchedApps);
+      setLoading(false);
+    };
+
+    loadApps();
+  }, []); // Run only on first render
+
+  // Fetch ONLY restrictions when Drunk Mode changes
+  useEffect(() => {
+    const loadRestrictions = async () => {
+      setLoading(true);
+      const updatedApps = await fetchAppRestrictions(apps);
+      setApps(updatedApps);
+      setLoading(false);
+    };
+
+    if (apps.length > 0) {
+      loadRestrictions();
+    }
+  }, [isDrunkMode]); // Runs only when Drunk Mode toggles
+
+  // Subscribe to real-time restriction changes
+  useEffect(() => {
+    const unsubscribe = subscribeToAppRestrictions(async () => {
+      const updatedApps = await fetchAppRestrictions(apps);
+      setApps(updatedApps);
+    });
 
     return () => {
-      supabase.removeChannel(subscription);
+      unsubscribe();
     };
-  }, [isDrunkMode]); //  Re-fetch apps when Drunk Mode changes
+  }, []);
 
-  // Filter apps based on Drunk Mode
   const visibleApps = apps.filter((app) =>
     app.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
 
   const renderItem = ({ item }) => {
     const isDisabled = isDrunkMode && item.isRestricted;
-  
+
     return (
       <TouchableOpacity
-        style={[
-          styles.item,
-          { backgroundColor: item.colour || '#707B7C', opacity: isDisabled ? 0.5 : 1 },
-        ]}
+        style={[styles.item, { backgroundColor: item.colour || "#707B7C", opacity: isDisabled ? 0.5 : 1 }]}
         onPress={() => !isDisabled && navigation.navigate(item.name)}
         disabled={isDisabled}
       >
@@ -93,19 +84,10 @@ export default function HomeScreen() {
     );
   };
 
-  const renderDockItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.dockItem, { backgroundColor: item.colour || '#707B7C' }]}
-      onPress={() => navigation.navigate(item.name)}
-    >
-      <Ionicons name={item.icon} size={40} color="#fff" />
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Searchbar
+      <Searchbar 
         placeholder="Search"
         onChangeText={setSearchQuery}
         value={searchQuery}
@@ -116,13 +98,9 @@ export default function HomeScreen() {
       <View style={styles.drunkModeContainer}>
         <Text style={styles.drunkModeText}>Drunk Mode</Text>
         <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
-          <Text style={styles.drunkModeButtonText}>
-            {isDrunkMode ? 'ON' : 'OFF'}
-          </Text>
+          <Text style={styles.drunkModeButtonText}>{isDrunkMode ? "ON" : "OFF"}</Text>
         </TouchableOpacity>
       </View>
-
-
 
       {/* App Grid */}
       {loading ? (
@@ -136,17 +114,6 @@ export default function HomeScreen() {
           contentContainerStyle={styles.grid}
         />
       )}
-
-      {/* Dock Apps */}
-      <View style={styles.dockContainer}>
-        <FlatList
-          data={visibleApps.slice(0, 4)}
-          renderItem={renderDockItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          contentContainerStyle={styles.dock}
-        />
-      </View>
     </View>
   );
 }

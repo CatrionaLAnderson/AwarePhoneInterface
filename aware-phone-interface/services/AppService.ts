@@ -1,23 +1,45 @@
-import { supabase } from "@/lib/supabase"; // Adjust the path if needed
+import { supabase } from "@/lib/supabase"; 
 
-// Define an interface for TypeScript safety
+// Define App Type
 interface App {
   id: string;
   name: string;
-  isRestricted: boolean;
+  colour: string;
+  icon: string;
+  isRestricted?: boolean;
 }
 
-export const fetchAppsWithRestrictions = async (existingApps: App[] = []): Promise<App[]> => {
+// Fetch all apps from "apps" table (only once on Home Screen load)
+export const fetchAllApps = async (): Promise<App[]> => {
+  const { data, error } = await supabase
+    .from("apps")
+    .select("id, app_name, colour, icon");
+
+  if (error) {
+    console.error("Error fetching apps:", error);
+    return [];
+  }
+
+  return data.map((app) => ({
+    id: app.id,
+    name: app.app_name,
+    colour: app.colour || "#707B7C",
+    icon: app.icon || "help",
+  }));
+};
+
+// Fetch ONLY app restrictions and merge with existing apps
+export const fetchAppRestrictions = async (existingApps: App[]): Promise<App[]> => {
   const { data, error } = await supabase
     .from("app_restrictions")
     .select("app_id, is_restricted");
 
   if (error) {
     console.error("Error fetching app restrictions:", error);
-    return existingApps; // If an error occurs, return the previous state
+    return existingApps; // Return previous apps if an error occurs
   }
 
-  // ✅ Merge restrictions with existing apps (to avoid full refetch)
+  // Merge restriction data with existing apps
   return existingApps.map((app) => ({
     ...app,
     isRestricted: data.find((restriction) => restriction.app_id === app.id)?.is_restricted || false,
@@ -60,4 +82,16 @@ export const toggleAppRestriction = async (appId: string, isRestricted: boolean)
   }
 
   return true;
+};
+
+//Correctly export `subscribeToAppRestrictions`
+export const subscribeToAppRestrictions = (callback: () => void) => {
+  const subscription = supabase
+    .channel("realtime_app_restrictions") // Give a unique name
+    .on("postgres_changes", { event: "*", schema: "public", table: "app_restrictions" }, callback)
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(subscription);
+  };
 };
