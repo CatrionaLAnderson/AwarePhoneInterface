@@ -9,7 +9,7 @@ import {
   FlatList,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { supabase } from '../../lib/supabase'; // Import Supabase client
+import { supabase } from '@/lib/supabase'; // import the supabase client
 
 const AppRestrictions = ({ navigation }) => {
   // State to store the list of apps
