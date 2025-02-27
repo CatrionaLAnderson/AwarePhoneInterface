@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,114 +7,55 @@ import {
   ActivityIndicator,
   Switch,
   FlatList,
-} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { supabase } from '@/lib/supabase'; // import the supabase client
+} from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { fetchAppsWithRestrictions, toggleAppRestriction } from "@/services/AppService";
 
 const AppRestrictions = ({ navigation }) => {
-  // State to store the list of apps
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Get the previous route name
   const previousRouteName =
-    navigation.getState().routes[navigation.getState().index - 1]?.name || 'Back';
+    navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
-  // Fetch apps with restriction status
   useEffect(() => {
-    const fetchAppsWithRestrictions = async () => {
+    const loadApps = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('apps')
-        .select('id, app_name, app_restrictions (is_restricted)');
-
-      if (error) {
-        console.error('Error fetching apps:', error);
-      } else {
-        const formattedApps = data.map((app) => ({
-          id: app.id,
-          name: app.app_name,
-          isRestricted: app.app_restrictions?.[0]?.is_restricted || false,
-        }));
-        setApps(formattedApps);
-      }
+      const fetchedApps = await fetchAppsWithRestrictions();
+      setApps(fetchedApps);
       setLoading(false);
     };
 
-    fetchAppsWithRestrictions();
+    loadApps();
   }, []);
 
   const handleToggle = async (appId, isRestricted) => {
-  console.log('Toggling restriction for:', appId, 'New Status:', isRestricted);
+    const success = await toggleAppRestriction(appId, isRestricted);
 
-  // Optimistically update UI first
-  setApps((prevApps) =>
-    prevApps.map((app) =>
-      app.id === appId ? { ...app, isRestricted } : app
-    )
-  );
-
-  // Check if the app already has a restriction entry
-  const { data: existingEntry, error: fetchError } = await supabase
-    .from('app_restrictions')
-    .select('id')
-    .eq('app_id', appId)
-    .maybeSingle();
-
-  if (fetchError) {
-    console.error('Error checking existing restriction:', fetchError);
-    return;
-  }
-
-  if (existingEntry) {
-    // UPDATE if the row already exists
-    const { error: updateError } = await supabase
-      .from('app_restrictions')
-      .update({ is_restricted: isRestricted })
-      .eq('app_id', appId);
-
-    if (updateError) {
-      console.error('Error updating app restriction:', updateError);
+    if (success) {
+      setApps((prevApps) =>
+        prevApps.map((app) =>
+          app.id === appId ? { ...app, isRestricted: isRestricted } : app
+        )
+      );
     }
-  } else {
-    // INSERT if the row does not exist
-    const { error: insertError } = await supabase
-      .from('app_restrictions')
-      .insert([{ app_id: appId, is_restricted: isRestricted }]);
+  };
 
-    if (insertError) {
-      console.error('Error inserting new restriction:', insertError);
-    }
-  }
-};
-
-  // Render each app with a toggle
   const renderItem = ({ item }) => (
     <View style={styles.item}>
       <Text style={styles.itemText}>{item.name}</Text>
       <Switch
         value={item.isRestricted}
-        onValueChange={(value) => {
-          handleToggle(item.id, value); // Update restriction in Supabase
-          setApps((prevApps) =>
-            prevApps.map((app) =>
-              app.id === item.id ? { ...app, isRestricted: value } : app
-            )
-          );
-        }}
+        onValueChange={(value) => handleToggle(item.id, value)}
       />
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Back Button & Title */}
       <Text style={styles.title}>App Restrictions</Text>
 
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{previousRouteName}</Text>
       </TouchableOpacity>
@@ -125,11 +66,7 @@ const AppRestrictions = ({ navigation }) => {
         ) : apps.length === 0 ? (
           <Text style={styles.noAppsText}>No apps found.</Text>
         ) : (
-          <FlatList
-            data={apps}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-          />
+          <FlatList data={apps} renderItem={renderItem} keyExtractor={(item) => item.id} />
         )}
       </View>
     </View>

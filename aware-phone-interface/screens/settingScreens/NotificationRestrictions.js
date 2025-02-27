@@ -1,121 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
-  View,
   Text,
   StyleSheet,
   ScrollView,
   Switch,
   TouchableOpacity,
-} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Card, Title, Paragraph, List } from 'react-native-paper';
-import { supabase } from '../../lib/supabase';
+} from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { Card, Title, Paragraph, List } from "react-native-paper";
+import { fetchAppsWithNotificationStatus, toggleNotificationMute } from "@/services/NotificationService";
 
 const NotificationRestrictions = ({ navigation }) => {
-  const [apps, setApps] = useState([]); // Store fetched apps
-  const [loading, setLoading] = useState(true); // Show loading state
+  const [apps, setApps] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get the previous route name for the back button
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
-  // Fetch data when component loads
   useEffect(() => {
-    fetchApps();
+    const loadApps = async () => {
+      setLoading(true);
+      const fetchedApps = await fetchAppsWithNotificationStatus();
+      setApps(fetchedApps);
+      setLoading(false);
+    };
+
+    loadApps();
   }, []);
 
-  const fetchApps = async () => {
-    setLoading(true);
-  
-    // 1️⃣ Fetch all apps from the "apps" table
-    const { data: appsData, error: appsError } = await supabase
-      .from('apps')
-      .select('id, app_name'); // Get all apps
-  
-    if (appsError) {
-      console.error('Error fetching apps:', appsError);
-      setLoading(false);
-      return;
-    }
-  
-    // 2️⃣ Fetch existing mute settings from "notifications"
-    const { data: notificationsData, error: notificationsError } = await supabase
-      .from('notifications')
-      .select('app_id, is_muted');
-  
-    if (notificationsError) {
-      console.error('Error fetching notifications:', notificationsError);
-      setLoading(false);
-      return;
-    }
-  
-    // 3️⃣ Merge data so every app has an "is_muted" status
-    const appsWithMuteStatus = appsData.map((app) => {
-      const notification = notificationsData.find((n) => n.app_id === app.id);
-      return {
-        ...app,
-        is_muted: notification ? notification.is_muted : false, // Default to false if missing
-      };
-    });
-  
-    console.log("Final app data:", appsWithMuteStatus); // Debugging log
-    setApps(appsWithMuteStatus);
-    setLoading(false);
-  };
+  const handleToggle = async (appId, isMuted) => {
+    const success = await toggleNotificationMute(appId, isMuted);
 
-  const toggleMute = async (app_id, currentValue) => {
-    // Check if a mute setting exists for this app
-    const { data: existingEntry, error: checkError } = await supabase
-      .from('notifications')
-      .select('id')
-      .eq('app_id', app_id)
-      .single(); // Get only one record
-  
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking notification:', checkError);
-      return;
+    if (success) {
+      setApps((prevApps) =>
+        prevApps.map((app) =>
+          app.id === appId ? { ...app, isMuted: !isMuted } : app
+        )
+      );
     }
-  
-    if (existingEntry) {
-      // If entry exists, update it
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update({ is_muted: !currentValue })
-        .eq('app_id', app_id);
-  
-      if (updateError) {
-        console.error('Error updating mute status:', updateError);
-        return;
-      }
-    } else {
-      // If no entry, create a new row
-      const { error: insertError } = await supabase
-        .from('notifications')
-        .insert([{ app_id, is_muted: !currentValue }]);
-  
-      if (insertError) {
-        console.error('Error inserting mute status:', insertError);
-        return;
-      }
-    }
-  
-    // Update UI state
-    setApps((prevApps) =>
-      prevApps.map((app) =>
-        app.id === app_id ? { ...app, is_muted: !currentValue } : app
-      )
-    );
   };
 
   return (
     <ScrollView style={styles.container}>
       {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
-        <Text style={styles.backButtonText}>{`${previousRouteName}`}</Text>
+        <Text style={styles.backButtonText}>{previousRouteName}</Text>
       </TouchableOpacity>
 
       {/* Header Card */}
@@ -130,24 +60,21 @@ const NotificationRestrictions = ({ navigation }) => {
       </Card>
 
       {/* Show loading state */}
-      {loading && <Text style={styles.loadingText}>Loading...</Text>}
+      {loading ? <Text style={styles.loadingText}>Loading...</Text> : null}
 
       {/* Show list of apps with mute toggles */}
       <List.Section>
-    {apps.map((app) => (
-      <List.Item
-        key={app.id}
-        title={app.app_name} // App name
-        description={app.is_muted ? "Muted" : "Not Muted"} // Small line under name
-        right={() => (
-          <Switch
-            value={app.is_muted}
-            onValueChange={() => toggleMute(app.id, app.is_muted)}
+        {apps.map((app) => (
+          <List.Item
+            key={app.id}
+            title={app.name}
+            description={app.isMuted ? "Muted" : "Not Muted"}
+            right={() => (
+              <Switch value={app.isMuted} onValueChange={() => handleToggle(app.id, app.isMuted)} />
+            )}
           />
-        )}
-      />
-    ))}
-  </List.Section>
+        ))}
+      </List.Section>
     </ScrollView>
   );
 };

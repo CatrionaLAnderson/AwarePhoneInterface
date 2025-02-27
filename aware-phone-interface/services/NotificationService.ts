@@ -1,53 +1,70 @@
-import { useEffect, useRef } from "react";
-import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { supabase } from "@/lib/supabase"; // Adjust the path if needed
 
-export default function NotificationHandler() {
-  const notificationListener = useRef<Notifications.Subscription | null>(null);
-  const responseListener = useRef<Notifications.Subscription | null>(null);
+// Fetch all apps with their notification mute status
+export const fetchAppsWithNotificationStatus = async () => {
+  const { data: appsData, error: appsError } = await supabase
+    .from("apps")
+    .select("id, app_name");
 
-  useEffect(() => {
-    registerForPushNotificationsAsync();
+  if (appsError) {
+    console.error("Error fetching apps:", appsError);
+    return [];
+  }
 
-    // Listen for notifications while the app is open
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log("🔔 Notification received:", notification);
-    });
+  const { data: notificationsData, error: notificationsError } = await supabase
+    .from("notifications")
+    .select("app_id, is_muted");
 
-    // Handle when user taps a notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log("📲 User tapped notification:", response);
-    });
+  if (notificationsError) {
+    console.error("Error fetching notifications:", notificationsError);
+    return [];
+  }
 
-    return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+  return appsData.map((app) => {
+    const notification = notificationsData.find((n) => n.app_id === app.id);
+    return {
+      id: app.id,
+      name: app.app_name,
+      isMuted: notification ? notification.is_muted : false, // Default to false if missing
     };
-  }, []);
+  });
+};
 
-  return null; // This component doesn’t render anything
-}
+// Toggle mute/unmute for a specific app's notifications
+export const toggleNotificationMute = async (appId: string, currentValue: boolean) => {
+  console.log("Toggling mute status for:", appId, "New Status:", !currentValue);
 
-// Request notification permissions
-async function registerForPushNotificationsAsync() {
-  if (Platform.OS === "ios") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== "granted") {
-      alert("⚠️ Please enable notifications in Settings.");
-      return;
+  const { data: existingEntry, error: fetchError } = await supabase
+    .from("notifications")
+    .select("id")
+    .eq("app_id", appId)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("Error checking existing notification restriction:", fetchError);
+    return false;
+  }
+
+  if (existingEntry) {
+    const { error: updateError } = await supabase
+      .from("notifications")
+      .update({ is_muted: !currentValue })
+      .eq("app_id", appId);
+
+    if (updateError) {
+      console.error("Error updating notification restriction:", updateError);
+      return false;
+    }
+  } else {
+    const { error: insertError } = await supabase
+      .from("notifications")
+      .insert([{ app_id: appId, is_muted: !currentValue }]);
+
+    if (insertError) {
+      console.error("Error inserting new notification restriction:", insertError);
+      return false;
     }
   }
 
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "Default",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
-  }
-}
+  return true;
+};
