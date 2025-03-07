@@ -37,8 +37,9 @@ export default function HomeScreen() {
     };
 
     loadApps();
-  }, []); // ✅ Runs only on mount
+  }, []); // Run only on first render
 
+  // Fetch ONLY restrictions when Drunk Mode changes
   useEffect(() => {
     const loadRestrictions = async () => {
       setLoading(true);
@@ -46,28 +47,23 @@ export default function HomeScreen() {
       setApps(updatedApps);
       setLoading(false);
     };
-  
+
     if (apps.length > 0) {
       loadRestrictions();
     }
-  }, [isDrunkMode]); // Runs when Drunk Mode changes
+  }, [isDrunkMode]); // Runs only when Drunk Mode toggles
 
   // Subscribe to real-time restriction changes
   useEffect(() => {
     const unsubscribe = subscribeToAppRestrictions(async () => {
-      const updatedApps = await fetchAppRestrictions();
+      const updatedApps = await fetchAppRestrictions(apps);
       setApps(updatedApps);
     });
 
     return () => {
       unsubscribe();
     };
-  }, []); // ✅ Runs only once
-
-  // Toggle Drunk Mode without modifying `apps` directly
-  const handleDrunkModeToggle = () => {
-    toggleDrunkMode();
-  };
+  }, []);
 
   const visibleApps = apps.filter((app) =>
     app.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -96,7 +92,7 @@ export default function HomeScreen() {
       style={[styles.dockItem, { backgroundColor: item.colour || '#707B7C' }]}
       onPress={() => navigation.navigate(item.name)}
     >
-      <Ionicons name="item.icon" size={40} color="#fff" />
+      <Ionicons name={item.icon} size={40} color="#fff" />
     </TouchableOpacity>
   );
 
@@ -113,7 +109,7 @@ export default function HomeScreen() {
       {/* Drunk Mode Toggle */}
       <View style={styles.drunkModeContainer}>
         <Text style={styles.drunkModeText}>Drunk Mode</Text>
-        <TouchableOpacity onPress={handleDrunkModeToggle} style={styles.drunkModeButton}>
+        <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
           <Text style={styles.drunkModeButtonText}>{isDrunkMode ? "ON 🍻" : "OFF ❌"}</Text>
         </TouchableOpacity>
       </View>
