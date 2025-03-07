@@ -11,8 +11,9 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Searchbar } from "react-native-paper"; 
-import { useDrunkMode } from "@/constants/DrunkModeContext"; 
+import { useDrunkMode } from "../constants/DrunkModeContext";
 import { fetchAllApps, fetchAppRestrictions, subscribeToAppRestrictions } from "@/services/AppService"; 
+
 
 const numColumns = 4;
 const screenWidth = Dimensions.get("window").width;
@@ -21,7 +22,7 @@ const dockSize = screenWidth / 5;
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); 
+  const { isDrunkMode, toggleDrunkMode } = useDrunkMode();
 
   const [apps, setApps] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,10 +72,13 @@ export default function HomeScreen() {
 
   const renderItem = ({ item }) => {
     const isDisabled = isDrunkMode && item.isRestricted;
-
+  
     return (
       <TouchableOpacity
-        style={[styles.item, { backgroundColor: item.colour || "#707B7C", opacity: isDisabled ? 0.5 : 1 }]}
+        style={[
+          styles.item,
+          { backgroundColor: item.colour || "#707B7C", opacity: isDisabled ? 0.5 : 1 }
+        ]}
         onPress={() => !isDisabled && navigation.navigate(item.name)}
         disabled={isDisabled}
       >
@@ -107,7 +111,7 @@ export default function HomeScreen() {
       <View style={styles.drunkModeContainer}>
         <Text style={styles.drunkModeText}>Drunk Mode</Text>
         <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
-          <Text style={styles.drunkModeButtonText}>{isDrunkMode ? "ON" : "OFF"}</Text>
+          <Text style={styles.drunkModeButtonText}>{isDrunkMode ? "ON 🍻" : "OFF ❌"}</Text>
         </TouchableOpacity>
       </View>
 

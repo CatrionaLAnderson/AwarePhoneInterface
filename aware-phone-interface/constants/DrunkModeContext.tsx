@@ -1,90 +1,39 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "@/lib/supabase"; 
+//Provides global state for drunk mode so any screen can access or update it without reloading data
+import React, { createContext, useContext, useState, useEffect } from "react";
+import useDrunkModeViewModel from "../viewmodels/DrunkModeViewModel";
 
-// Define the context structure
+// TypeScript Interface for drunk mode context
 interface DrunkModeContextType {
   isDrunkMode: boolean;
-  toggleDrunkMode: () => Promise<void>;
+  toggleDrunkMode: () => void;
 }
 
-// Create the context with an initial empty default value
-const DrunkModeContext = createContext<DrunkModeContextType>({
-  isDrunkMode: false,
-  toggleDrunkMode: async () => {},
-});
+const DrunkModeContext = createContext<DrunkModeContextType | undefined>(undefined);
 
-// Define Props for Provider
-interface DrunkModeProviderProps {
-  children: ReactNode;
-}
-
-// Provider component
-export const DrunkModeProvider: React.FC<DrunkModeProviderProps> = ({ children }) => {
-  const [isDrunkMode, setIsDrunkMode] = useState<boolean>(false);
+export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) => {
+  const { isDrunkModeActive, toggleDrunkMode } = useDrunkModeViewModel();
+  const [drunkMode, setDrunkMode] = useState(isDrunkModeActive);
 
   useEffect(() => {
-    const loadDrunkModeStatus = async () => {
-      const storedStatus = await AsyncStorage.getItem("drunkMode");
+    setDrunkMode(isDrunkModeActive);
+  }, [isDrunkModeActive]);
 
-      // Fetch latest status from Supabase
-      const { data, error } = await supabase.from("drunk_mode_status").select("is_active").single();
-
-      if (error) {
-        console.error("Error fetching drunk mode:", error);
-        setIsDrunkMode(storedStatus ? JSON.parse(storedStatus) : false); // Fallback to local storage
-      } else {
-        setIsDrunkMode(data.is_active); // Use Supabase value
-      }
-    };
-
-    loadDrunkModeStatus();
-  }, []);
-
-  const toggleDrunkMode = async () => {
-    const newStatus = !isDrunkMode;
-    setIsDrunkMode(newStatus);
-    await AsyncStorage.setItem("drunkMode", JSON.stringify(newStatus));
-
-    // Fetch existing row from Supabase
-    const { data: existingEntry, error: fetchError } = await supabase
-      .from("drunk_mode_status")
-      .select("id")
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error("Error checking drunk mode status:", fetchError);
-      return;
-    }
-
-    if (existingEntry) {
-      // ✅ UPDATE existing row
-      const { error: updateError } = await supabase
-        .from("drunk_mode_status")
-        .update({ is_active: newStatus })
-        .eq("id", existingEntry.id);
-
-      if (updateError) {
-        console.error("Error updating drunk mode:", updateError);
-      }
-    } else {
-      //  INSERT if no row exists
-      const { error: insertError } = await supabase
-        .from("drunk_mode_status")
-        .insert([{ is_active: newStatus }]);
-
-      if (insertError) {
-        console.error("Error inserting drunk mode:", insertError);
-      }
-    }
+  const handleToggle = () => {
+    toggleDrunkMode();
+    setDrunkMode((prev) => !prev);
   };
 
   return (
-    <DrunkModeContext.Provider value={{ isDrunkMode, toggleDrunkMode }}>
+    <DrunkModeContext.Provider value={{ isDrunkMode: drunkMode, toggleDrunkMode: handleToggle }}>
       {children}
     </DrunkModeContext.Provider>
   );
 };
 
-// Custom hook for easy access
-export const useDrunkMode = () => useContext(DrunkModeContext);
+export const useDrunkMode = (): DrunkModeContextType => {
+  const context = useContext(DrunkModeContext);
+  if (!context) {
+    throw new Error("useDrunkMode must be used within a DrunkModeProvider");
+  }
+  return context;
+};

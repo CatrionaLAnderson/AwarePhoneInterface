@@ -1,16 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, {useState } from 'react';
 import {
-  View,
   Text,
   StyleSheet,
   ScrollView,
-  Switch,
   TouchableOpacity,
   TextInput,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Card, Title, Paragraph, List } from 'react-native-paper';
-import { supabase } from '../../lib/supabase';
 
 const HealthRecommendations = ({ navigation }) => {
   const previousRouteName =
