@@ -14,7 +14,6 @@ import { Searchbar } from "react-native-paper";
 import { useDrunkMode } from "../constants/DrunkModeContext";
 import { fetchAllApps, fetchAppRestrictions, subscribeToAppRestrictions } from "@/services/AppService"; 
 
-
 const numColumns = 4;
 const screenWidth = Dimensions.get("window").width;
 const itemSize = screenWidth / numColumns - 20;
@@ -38,36 +37,36 @@ export default function HomeScreen() {
     };
 
     loadApps();
-  }, []); // Run only on first render
+  }, []); // ✅ Runs only on mount
 
-    useEffect(() => {
-      if (apps.length > 0) {
-        setLoading(true);
-        fetchAppRestrictions(apps).then((updatedApps) => {
-          setApps(updatedApps);
-          setLoading(false);
-        });
-      }
-    }, [isDrunkMode, apps]); // Now it tracks both drunk mode and app list changes
+  useEffect(() => {
+    const loadRestrictions = async () => {
+      setLoading(true);
+      const updatedApps = await fetchAppRestrictions(apps);
+      setApps(updatedApps);
+      setLoading(false);
+    };
+  
+    if (apps.length > 0) {
+      loadRestrictions();
+    }
+  }, [isDrunkMode]); // Runs when Drunk Mode changes
 
   // Subscribe to real-time restriction changes
   useEffect(() => {
     const unsubscribe = subscribeToAppRestrictions(async () => {
-      const updatedApps = await fetchAppRestrictions(apps);
+      const updatedApps = await fetchAppRestrictions();
       setApps(updatedApps);
     });
 
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, []); // ✅ Runs only once
 
+  // Toggle Drunk Mode without modifying `apps` directly
   const handleDrunkModeToggle = () => {
-    toggleDrunkMode(); // Calls ViewModel function
-    setApps((prevApps) => prevApps.map(app => ({
-      ...app,
-      isRestricted: isDrunkMode ? false : app.isRestricted, // Adjust restrictions instantly
-    })));
+    toggleDrunkMode();
   };
 
   const visibleApps = apps.filter((app) =>
@@ -97,7 +96,7 @@ export default function HomeScreen() {
       style={[styles.dockItem, { backgroundColor: item.colour || '#707B7C' }]}
       onPress={() => navigation.navigate(item.name)}
     >
-      <Ionicons name={item.icon} size={40} color="#fff" />
+      <Ionicons name="item.icon" size={40} color="#fff" />
     </TouchableOpacity>
   );
 
@@ -131,7 +130,6 @@ export default function HomeScreen() {
           contentContainerStyle={styles.grid}
         />
       )}
-
 
       {/* Dock Apps */}
       <View style={styles.dockContainer}>
