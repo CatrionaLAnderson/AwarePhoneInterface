@@ -40,19 +40,15 @@ export default function HomeScreen() {
     loadApps();
   }, []); // Run only on first render
 
-  // Fetch ONLY restrictions when Drunk Mode changes
-  useEffect(() => {
-    const loadRestrictions = async () => {
-      setLoading(true);
-      const updatedApps = await fetchAppRestrictions(apps);
-      setApps(updatedApps);
-      setLoading(false);
-    };
-
-    if (apps.length > 0) {
-      loadRestrictions();
-    }
-  }, [isDrunkMode]); // Runs only when Drunk Mode toggles
+    useEffect(() => {
+      if (apps.length > 0) {
+        setLoading(true);
+        fetchAppRestrictions(apps).then((updatedApps) => {
+          setApps(updatedApps);
+          setLoading(false);
+        });
+      }
+    }, [isDrunkMode, apps]); // Now it tracks both drunk mode and app list changes
 
   // Subscribe to real-time restriction changes
   useEffect(() => {
@@ -65,6 +61,14 @@ export default function HomeScreen() {
       unsubscribe();
     };
   }, []);
+
+  const handleDrunkModeToggle = () => {
+    toggleDrunkMode(); // Calls ViewModel function
+    setApps((prevApps) => prevApps.map(app => ({
+      ...app,
+      isRestricted: isDrunkMode ? false : app.isRestricted, // Adjust restrictions instantly
+    })));
+  };
 
   const visibleApps = apps.filter((app) =>
     app.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -110,7 +114,7 @@ export default function HomeScreen() {
       {/* Drunk Mode Toggle */}
       <View style={styles.drunkModeContainer}>
         <Text style={styles.drunkModeText}>Drunk Mode</Text>
-        <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
+        <TouchableOpacity onPress={handleDrunkModeToggle} style={styles.drunkModeButton}>
           <Text style={styles.drunkModeButtonText}>{isDrunkMode ? "ON 🍻" : "OFF ❌"}</Text>
         </TouchableOpacity>
       </View>
