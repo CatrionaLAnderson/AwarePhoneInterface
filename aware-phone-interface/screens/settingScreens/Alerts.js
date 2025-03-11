@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Keyboard, ScrollView, TouchableWithoutFeedback  } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Keyboard, ScrollView, TouchableWithoutFeedback } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { supabase } from '../../lib/supabase'; // Import your Supabase client
@@ -16,8 +16,16 @@ const Alerts = ({ navigation }) => {
   const [isTimePickerVisible, setTimePickerVisible] = useState(false); // Time picker state
 
   useEffect(() => {
+    requestNotificationPermissions();
     fetchAlerts();
   }, []);
+
+  const requestNotificationPermissions = async () => {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Permission to access notifications was denied');
+    }
+  };
 
   const fetchAlerts = async () => {
     setLoading(true);
@@ -32,30 +40,32 @@ const Alerts = ({ navigation }) => {
 
   const addAlert = async () => {
     Keyboard.dismiss();
-  
+
     if (alertName && alertTime && alertContent) {
+      console.log('Adding alert:', { alertName, alertTime, alertContent });
+
       const { data, error } = await supabase
         .from('timed_alerts')
         .insert([{ name: alertName, alert_time: alertTime, message: alertContent }])
         .select();
-  
+
       if (error) {
         console.error('Error adding alert:', error);
       } else if (data && data.length > 0) {
         setAlerts((prevAlerts) => [...prevAlerts, ...data]);
-  
+
         // Convert HH:MM to a Date object for scheduling
         const now = new Date();
         const [hours, minutes] = alertTime.split(':').map(Number);
         let scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
-  
+
         // If the time has already passed today, schedule it for tomorrow
         if (scheduledTime <= now) {
           scheduledTime.setDate(scheduledTime.getDate() + 1);
         }
-  
+
         console.log(`🔔 Scheduling notification for: ${scheduledTime}`);
-  
+
         // Schedule the notification
         await Notifications.scheduleNotificationAsync({
           content: {
@@ -65,13 +75,13 @@ const Alerts = ({ navigation }) => {
           },
           trigger: { date: scheduledTime },
         });
-  
+
+        console.log('Notification scheduled successfully');
+
         // Clear input fields
         setAlertName('');
         setAlertTime('');
         setAlertContent('');
-  
-        alert(`✅ Alert "${alertName}" set for ${alertTime}`);
       }
     }
   };
