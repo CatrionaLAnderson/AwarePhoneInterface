@@ -9,7 +9,7 @@ export default function Layout() {
     <DrunkModeProvider>
       <PaperProvider>
         <SafeAreaView style={styles.container}>
-          <AppNavigator /> {/* No NavigationContainer here! */}
+          <AppNavigator /> 
         </SafeAreaView>
       </PaperProvider>
     </DrunkModeProvider>

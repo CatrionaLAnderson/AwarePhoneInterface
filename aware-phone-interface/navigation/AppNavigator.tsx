@@ -10,6 +10,7 @@ import HealthRecommendations from "../screens/settingScreens/HealthRecommendatio
 import SafetySettings from "../screens/settingScreens/SafetySettings";
 import Alerts from "../screens/settingScreens/Alerts";
 import PhoneApp from "../screens/PhoneApp";
+import MessagingApp from "../screens/MessagingApp";
 
 // Create stack navigator
 const Stack = createStackNavigator();
@@ -26,6 +27,7 @@ const AppNavigator = () => (
     <Stack.Screen name="SafetySettings" component={SafetySettings} />
     <Stack.Screen name="Alerts" component={Alerts} />
     <Stack.Screen name="Phone" component={PhoneApp} />
+    <Stack.Screen name="Messages" component={MessagingApp} />
   </Stack.Navigator>
 );
 
