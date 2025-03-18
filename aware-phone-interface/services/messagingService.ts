@@ -1,4 +1,5 @@
 import { fuzzyCorrectWord } from "./fuzzyMatching";
+import { notifyAutoCorrectUsage } from "./NotificationService2"; // Import notification function
 
 export interface Message {
   id: number;
@@ -9,7 +10,15 @@ export interface Message {
 
 // Function to correct an entire message
 export const correctDrunkMessage = (message: string): string => {
-  return message.split(" ").map(fuzzyCorrectWord).join(" ");
+  const correctedMessage = message.split(" ").map(fuzzyCorrectWord).join(" ");
+
+  // ✅ Send notification ONLY if corrections were made
+  if (correctedMessage !== message) {
+    console.log("🛑 Drunk Mode Auto-Correct Triggered! Sending Notification...");
+    notifyAutoCorrectUsage(); // Trigger the notification
+  }
+
+  return correctedMessage;
 };
 
 // Function to send a message

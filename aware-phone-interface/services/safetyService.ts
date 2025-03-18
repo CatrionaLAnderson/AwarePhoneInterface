@@ -9,8 +9,13 @@ interface SafetySettings {
 
 // Fetch Safety Settings
 export const fetchSafetySettings = async (): Promise<SafetySettings> => {
-  const { data, error } = await supabase.from("safety_settings").select("*").single();
-  
+  const { data, error } = await supabase
+    .from("safety_settings")
+    .select("*")
+    .order("id", { ascending: false }) // ✅ Ensures latest row is selected
+    .limit(1) // ✅ Only fetch one row
+    .single(); // ✅ Ensures we return an object, not an array
+
   if (error) {
     console.error("Error fetching safety settings:", error);
     return { emergency_contact_id: null, designated_driver_id: null, transport_mode: null };
@@ -19,7 +24,7 @@ export const fetchSafetySettings = async (): Promise<SafetySettings> => {
   return data;
 };
 
-// Save Safety Settings (Fixing Type Issue)
+// Save Safety Settings
 export const saveSafetySettings = async (
   emergencyContactId: string | null,
   driverId: string | null,
