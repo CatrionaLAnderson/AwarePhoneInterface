@@ -6,17 +6,22 @@ import {
   notifyAutoCorrectUsage,
   scheduleAutoCorrectReminder,
 } from "@/services/NotificationService2";
+import { logTrackingEvent, startDrunkModeSession, endDrunkModeSession } from "../services/GlobalTracking";
+import TrackingOverviewModal from "@/components/TrackingOverviewModal";
 
 // TypeScript Interface for drunk mode context
 interface DrunkModeContextType {
   isDrunkMode: boolean;
   toggleDrunkMode: () => void;
+  showModal: boolean;
+  setShowModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const DrunkModeContext = createContext<DrunkModeContextType | undefined>(undefined);
 
 export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) => {
   const [drunkMode, setDrunkMode] = useState(false); // Default to false
+  const [showModal, setShowModal] = useState(false);
 
   // Load Drunk Mode state from AsyncStorage when app starts
   useEffect(() => {
@@ -44,8 +49,13 @@ export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) =
           await Notifications.cancelAllScheduledNotificationsAsync();
           scheduleTimedNotification("💧 Stay Hydrated!", "Water = good. Drink some!", 60); // 1 min
           scheduleAutoCorrectReminder(); // Auto-correct reminder after 5 min
+          await startDrunkModeSession(); // Start tracking session
+          await logTrackingEvent({ event_type: 'drunk_mode', event_detail: 'activated' });
         } else {
           await Notifications.cancelAllScheduledNotificationsAsync();
+          await endDrunkModeSession(); // End tracking session
+          await logTrackingEvent({ event_type: 'drunk_mode', event_detail: 'deactivated' });
+          setShowModal(true); // Show the tracking overview modal
         }
       } catch (error) {
         console.error("❌ Error updating Drunk Mode state:", error);
@@ -60,8 +70,9 @@ export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) =
   };
 
   return (
-    <DrunkModeContext.Provider value={{ isDrunkMode: drunkMode, toggleDrunkMode: handleToggle }}>
+    <DrunkModeContext.Provider value={{ isDrunkMode: drunkMode, toggleDrunkMode: handleToggle, showModal, setShowModal }}>
       {children}
+      <TrackingOverviewModal isVisible={showModal} onClose={() => setShowModal(false)} />
     </DrunkModeContext.Provider>
   );
 };

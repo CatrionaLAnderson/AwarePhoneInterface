@@ -6,6 +6,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useDrunkMode } from "@/constants/DrunkModeContext";
 import { fetchContactsWithRestrictions } from "@/services/ContactService";
 import { sendMessage } from "@/services/messagingService";
+import { logTrackingEvent } from '@/services/GlobalTracking';
 
 const MessagingApp = ({ navigation }) => {
   const { isDrunkMode } = useDrunkMode();
@@ -21,8 +22,8 @@ const MessagingApp = ({ navigation }) => {
   useEffect(() => {
     const loadContacts = async () => {
       const fetchedContacts = await fetchContactsWithRestrictions();
-      setContacts(fetchedContacts);
-
+      setContacts(fetchedContacts);  // Store the contacts in state
+    
       const blockedContacts = new Set(
         fetchedContacts.filter((contact) => contact.isBlocked).map((contact) => contact.id)
       );
@@ -48,17 +49,35 @@ const MessagingApp = ({ navigation }) => {
   }, []);
 
   const openChat = (contact) => {
-    setCurrentContact(contact);
+    setCurrentContact({
+      ...contact,
+      contact_name: contact.name, // Add contact_name property here
+    });  
     setMessages([
       { id: 1, text: "Hey! How are you?", sender: "them", timestamp: "10:00 AM" },
       { id: 2, text: "I'm good! You?", sender: "me", timestamp: "10:02 AM" },
     ]);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
+    console.log(currentContact);  // Log currentContact to verify if contact_name exists
+    
     const updatedMessages = sendMessage(message, messages, isDrunkMode);
     setMessages(updatedMessages);
     setMessage("");
+  
+    // Fetch contact name directly from currentContact (using `name` instead of `contact_name`)
+    if (currentContact && currentContact.name) {  // Use `name` instead of `contact_name`
+      await logTrackingEvent({
+        event_type: "message",
+        event_detail: `Message to ${currentContact.name || "Unknown"}`,  // Use `name` instead of `contact_name`
+        message_preview: message.slice(0, 50),
+        contact_name: currentContact.name || "Unknown",  // Use `name` here too
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      console.error("❌ No contact name found for the message event.");
+    }
   };
 
   const renderContactItem = ({ item }) => {
