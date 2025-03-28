@@ -7,6 +7,8 @@ type TrackingEvent = {
     duration?: string;
     message_preview?: string;
     notification_content?: string;
+    contact_name?: string;  // Added contact_name for phone calls
+    phone_number?: string;  // Optional: Track the phone number if needed
 };
 
 

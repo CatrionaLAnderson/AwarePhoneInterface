@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Modal, StyleSheet, TouchableOpacity, FlatList } from "react-native";
 import { supabase } from "@/lib/supabase"; 
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -52,25 +52,27 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
         return;
       }
   
-      // Get all message events during Drunk Mode, and filter them between activation and deactivation
+      // Fetch both message, phone call, and notification events during Drunk Mode
       const { data: messageData, error: messageError } = await supabase
         .from("tracking_data")
         .select("*")
-        .eq("event_type", "message")
-        .gt("timestamp", drunkModeActivatedData[0]?.timestamp)  // Only messages after activation
-        .lt("timestamp", drunkModeDeactivatedData[0]?.timestamp)  // Only messages before deactivation
-        .order("timestamp", { ascending: true });  // Order chronologically for messages
+        .or('event_type.eq.message,event_type.eq.phone_call,event_type.eq.notification_received')  // Include messages, phone calls, and notifications
+        .gt("timestamp", drunkModeActivatedData[0]?.timestamp)  // Only after activation
+        .lt("timestamp", drunkModeDeactivatedData[0]?.timestamp)  // Only before deactivation
+        .order("timestamp", { ascending: true });  // Order chronologically
   
       if (messageError) {
-        console.error("Error fetching message data:", messageError);
+        console.error("Error fetching message and phone call data:", messageError);
         return;
       }
 
-      // Combine Drunk Mode and Message events
+      console.log("Fetched tracking data:", messageData);  // Debug log to check if notifications are present
+
+      // Combine Drunk Mode, Message, Phone Call, and Notification events
       const allData = [
         ...drunkModeActivatedData,
         ...drunkModeDeactivatedData,
-        ...messageData,
+        ...messageData,  // Add both message, phone call, and notification events here
       ];
 
       if (drunkModeActivatedData && drunkModeActivatedData.length > 0 && drunkModeDeactivatedData && drunkModeDeactivatedData.length > 0) {
@@ -83,7 +85,7 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
         const minutes = Math.floor((durationInMillis % 3600000) / 60000); // 60000 ms = 1 minute
   
         setDuration(`${hours}h ${minutes}m`); // Set the duration in hours and minutes
-        setTrackingData(allData);  // Set all data (Drunk Mode + Message events)
+        setTrackingData(allData);  // Set all data (Drunk Mode + Message + Phone Call + Notification events)
       }
     };
   
@@ -92,43 +94,58 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
     }
   }, [isVisible]);
 
-  const renderItem = ({ item }: { item: TrackingEvent }) => (
-    <View style={styles.item}>
-      <View style={styles.eventHeader}>
-        <Ionicons 
-          name={item.event_type === "message" ? "chatbubble" : "notifications"} 
-          size={20} 
-          color="#007bff" 
-        />
-        {/* Display "Activated" or "Deactivated" event correctly */}
-        <Text style={styles.eventType}>
-          {item.event_type === "message"
-            ? `Message to ${item.contact_name || "Unknown"}`
-            : item.event_detail === "activated"
-            ? "Drunk Mode Activated"
-            : item.event_detail === "deactivated"
-            ? "Drunk Mode Deactivated"
-            : item.event_detail}
-        </Text>
+  const renderItem = ({ item }: { item: TrackingEvent }) => {
+    console.log("Rendering item:", item);  // Log each item to check if it's a notification event
+    return (
+      <View style={styles.item}>
+        <View style={styles.eventHeader}>
+          <Ionicons 
+            name={item.event_type === "message" ? "chatbubble" :
+                  item.event_type === "phone_call" ? "call" :
+                  item.event_type === "notification_received" ? "notifications" : "notifications"} 
+            size={20} 
+            color="#007bff" 
+          />
+          <Text style={styles.eventType}>
+            {item.event_type === "message"
+              ? `Message to ${item.contact_name || "Unknown"}`
+              : item.event_type === "phone_call"
+              ? `Call to ${item.contact_name || "Unknown"}`
+              : item.event_type === "notification_received"
+              ? `Notification: ${item.notification_content || "Unknown"}`
+              : item.event_detail === "activated"
+              ? "Drunk Mode Activated"
+              : item.event_detail === "deactivated"
+              ? "Drunk Mode Deactivated"
+              : item.event_detail}
+          </Text>
+        </View>
+  
+        {/* If it's a message or phone call, show the preview */}
+        {item.event_type === "message" && item.message_preview && (
+          <Text style={styles.messagePreview}>
+            Message Preview: {item.message_preview}
+          </Text>
+        )}
+     
+        {item.event_type === "phone_call" && (
+          <Text style={styles.messagePreview}>
+            Phone call to: {item.contact_name}
+          </Text>
+        )}
+  
+        {/* Show notification content if exists */}
+        {item.event_type === "notification_received" ? (
+            <Text style={styles.messagePreview}>
+                Notification: {item.notification_content || "No content available"}
+            </Text>
+            ) : null}
+  
+        <Text style={styles.timestamp}>Time: {new Date(item.timestamp).toLocaleString()}</Text>
       </View>
+    );
+  };
 
-      {/* If it's a message, show the preview */}
-      {item.event_type === "message" && item.message_preview && (
-        <Text style={styles.messagePreview}>
-          Message Preview: {item.message_preview}
-        </Text>
-      )}
-
-      {/* Show notification content if exists */}
-      {item.notification_content && (
-        <Text style={styles.messagePreview}>
-          Notification: {item.notification_content}
-        </Text>
-      )}
-
-      <Text style={styles.timestamp}>Time: {new Date(item.timestamp).toLocaleString()}</Text>
-    </View>
-  );
 
   return (
     <Modal
