@@ -9,7 +9,6 @@ interface TrackingEvent {
   event_detail: string;
   contact_name?: string;
   message_preview?: string;
-  notification_content?: string;
   timestamp: string;
 }
 
@@ -24,68 +23,71 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
 
   useEffect(() => {
     const fetchTrackingData = async () => {
-      // Get the most recent 'Drunk Mode activated' timestamp
-      const { data: drunkModeActivatedData, error: activatedError } = await supabase
-        .from("tracking_data")
-        .select("*")
-        .eq("event_type", "drunk_mode")
-        .eq("event_detail", "activated")
-        .order("timestamp", { ascending: false })
-        .limit(1);  // Only get the most recent activation
+      try {
+        // Get the most recent 'Drunk Mode activated' timestamp
+        const { data: drunkModeActivatedData, error: activatedError } = await supabase
+          .from("tracking_data")
+          .select("*")
+          .eq("event_type", "drunk_mode")
+          .eq("event_detail", "activated")
+          .order("timestamp", { ascending: false })
+          .limit(1);  // Only get the most recent activation
   
-      if (activatedError) {
-        console.error("Error fetching Drunk Mode activation data:", activatedError);
-        return;
-      }
+        if (activatedError) {
+          console.error("Error fetching Drunk Mode activation data:", activatedError);
+          return;
+        }
   
-      // Get the most recent 'Drunk Mode deactivated' timestamp
-      const { data: drunkModeDeactivatedData, error: deactivatedError } = await supabase
-        .from("tracking_data")
-        .select("*")
-        .eq("event_type", "drunk_mode")
-        .eq("event_detail", "deactivated")
-        .order("timestamp", { ascending: false })
-        .limit(1);  // Only get the most recent deactivation
+        // Get the most recent 'Drunk Mode deactivated' timestamp
+        const { data: drunkModeDeactivatedData, error: deactivatedError } = await supabase
+          .from("tracking_data")
+          .select("*")
+          .eq("event_type", "drunk_mode")
+          .eq("event_detail", "deactivated")
+          .order("timestamp", { ascending: false })
+          .limit(1);  // Only get the most recent deactivation
   
-      if (deactivatedError) {
-        console.error("Error fetching Drunk Mode deactivation data:", deactivatedError);
-        return;
-      }
+        if (deactivatedError) {
+          console.error("Error fetching Drunk Mode deactivation data:", deactivatedError);
+          return;
+        }
   
-      // Fetch both message, phone call, and notification events during Drunk Mode
-      const { data: messageData, error: messageError } = await supabase
-        .from("tracking_data")
-        .select("*")
-        .or('event_type.eq.message,event_type.eq.phone_call,event_type.eq.notification_received')  // Include messages, phone calls, and notifications
-        .gt("timestamp", drunkModeActivatedData[0]?.timestamp)  // Only after activation
-        .lt("timestamp", drunkModeDeactivatedData[0]?.timestamp)  // Only before deactivation
-        .order("timestamp", { ascending: true });  // Order chronologically
-  
-      if (messageError) {
-        console.error("Error fetching message and phone call data:", messageError);
-        return;
-      }
+        // Get activation and deactivation timestamps
+        const activationTimestamp = new Date(drunkModeActivatedData[0].timestamp).toISOString();
+        const deactivationTimestamp = new Date(drunkModeDeactivatedData[0].timestamp).toISOString();
 
-      console.log("Fetched tracking data:", messageData);  // Debug log to check if notifications are present
-
-      // Combine Drunk Mode, Message, Phone Call, and Notification events
-      const allData = [
-        ...drunkModeActivatedData,
-        ...drunkModeDeactivatedData,
-        ...messageData,  // Add both message, phone call, and notification events here
-      ];
-
-      if (drunkModeActivatedData && drunkModeActivatedData.length > 0 && drunkModeDeactivatedData && drunkModeDeactivatedData.length > 0) {
-        const activationTimestamp = new Date(drunkModeActivatedData[0].timestamp);
-        const deactivationTimestamp = new Date(drunkModeDeactivatedData[0].timestamp);
+        // Fetch message and phone call events during Drunk Mode
+        const { data: messageData, error: messageError } = await supabase
+          .from("tracking_data")
+          .select("*")
+          .or('event_type.eq.message,event_type.eq.phone_call')  // Include messages and phone calls
+          .gt("timestamp", activationTimestamp)  // After activation
+          .lt("timestamp", deactivationTimestamp)  // Before deactivation
+          .order("timestamp", { ascending: true });  // Ensure ordering by timestamp
   
-        // Calculate the difference between deactivation and activation timestamps
-        const durationInMillis = deactivationTimestamp.getTime() - activationTimestamp.getTime();
-        const hours = Math.floor(durationInMillis / 3600000); // 3600000 ms = 1 hour
-        const minutes = Math.floor((durationInMillis % 3600000) / 60000); // 60000 ms = 1 minute
+        if (messageError) {
+          console.error("Error fetching message and phone call data:", messageError);
+          return;
+        }
   
-        setDuration(`${hours}h ${minutes}m`); // Set the duration in hours and minutes
-        setTrackingData(allData);  // Set all data (Drunk Mode + Message + Phone Call + Notification events)
+        // Combine Drunk Mode, Message, and Phone Call events
+        const allData = [
+          ...drunkModeActivatedData,
+          ...drunkModeDeactivatedData,
+          ...messageData, 
+        ];
+  
+        if (drunkModeActivatedData && drunkModeActivatedData.length > 0 && drunkModeDeactivatedData && drunkModeDeactivatedData.length > 0) {
+          // Calculate the difference between deactivation and activation timestamps
+          const durationInMillis = new Date(drunkModeDeactivatedData[0].timestamp).getTime() - new Date(drunkModeActivatedData[0].timestamp).getTime();
+          const hours = Math.floor(durationInMillis / 3600000); // 3600000 ms = 1 hour
+          const minutes = Math.floor((durationInMillis % 3600000) / 60000); // 60000 ms = 1 minute
+  
+          setDuration(`${hours}h ${minutes}m`); // Set the duration in hours and minutes
+          setTrackingData(allData);  // Set all data (Drunk Mode + Message + Phone Call events)
+        }
+      } catch (err) {
+        console.error("Error fetching tracking data:", err);
       }
     };
   
@@ -95,14 +97,15 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
   }, [isVisible]);
 
   const renderItem = ({ item }: { item: TrackingEvent }) => {
-    console.log("Rendering item:", item);  // Log each item to check if it's a notification event
     return (
       <View style={styles.item}>
         <View style={styles.eventHeader}>
           <Ionicons 
             name={item.event_type === "message" ? "chatbubble" :
                   item.event_type === "phone_call" ? "call" :
-                  item.event_type === "notification_received" ? "notifications" : "notifications"} 
+                  item.event_detail === "activated" ? "checkmark-circle" :
+                  item.event_detail === "deactivated" ? "close-circle" :
+                  "alert-circle"}
             size={20} 
             color="#007bff" 
           />
@@ -111,8 +114,6 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
               ? `Message to ${item.contact_name || "Unknown"}`
               : item.event_type === "phone_call"
               ? `Call to ${item.contact_name || "Unknown"}`
-              : item.event_type === "notification_received"
-              ? `Notification: ${item.notification_content || "Unknown"}`
               : item.event_detail === "activated"
               ? "Drunk Mode Activated"
               : item.event_detail === "deactivated"
@@ -121,7 +122,7 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
           </Text>
         </View>
   
-        {/* If it's a message or phone call, show the preview */}
+  
         {item.event_type === "message" && item.message_preview && (
           <Text style={styles.messagePreview}>
             Message Preview: {item.message_preview}
@@ -134,18 +135,10 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
           </Text>
         )}
   
-        {/* Show notification content if exists */}
-        {item.event_type === "notification_received" ? (
-            <Text style={styles.messagePreview}>
-                Notification: {item.notification_content || "No content available"}
-            </Text>
-            ) : null}
-  
         <Text style={styles.timestamp}>Time: {new Date(item.timestamp).toLocaleString()}</Text>
       </View>
     );
   };
-
 
   return (
     <Modal

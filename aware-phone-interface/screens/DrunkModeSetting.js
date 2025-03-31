@@ -49,17 +49,6 @@ const DrunkModeScreen = ({ navigation }) => {
         </Card.Content>
       </Card>
 
-      {/* <View style={styles.toggleContainer}>
-        <Text style={styles.toggleText}>
-          Status: {isDrunkModeActive ? "Active 🍻" : "Inactive ❌"}
-        </Text>
-        <Button
-          title={isDrunkModeActive ? "Disable Drunk Mode" : "Enable Drunk Mode"}
-          onPress={toggleDrunkMode}
-          color="#6200EE" // Optional: Custom color for better visibility
-        />
-      </View> */}
-
       <View style={styles.toggleContainer}>
               <Text style={styles.toggleText}>Drunk Mode</Text>
               <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
@@ -84,8 +73,10 @@ const DrunkModeScreen = ({ navigation }) => {
                 navigation.navigate("HealthRecommendations");
               } else if (option.label === "Safety") {
                 navigation.navigate("SafetySettings");
+              } else if (option.label === "Activity Overview")
+                navigation.navigate("ActivityOverview");
               }
-            }}
+            }
             style={styles.button}
           >
             <View style={styles.buttonContent}>

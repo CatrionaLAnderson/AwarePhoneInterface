@@ -11,6 +11,7 @@ import SafetySettings from "../screens/settingScreens/SafetySettings";
 import Alerts from "../screens/settingScreens/Alerts";
 import PhoneApp from "../screens/PhoneApp";
 import MessagingApp from "../screens/MessagingApp";
+import ActivityOverview from "../screens/settingScreens/ActivityOverview";
 
 // Create stack navigator
 const Stack = createStackNavigator();
@@ -28,6 +29,7 @@ const AppNavigator = () => (
     <Stack.Screen name="Alerts" component={Alerts} />
     <Stack.Screen name="Phone" component={PhoneApp} />
     <Stack.Screen name="Messages" component={MessagingApp} />
+    <Stack.Screen name="ActivityOverview" component={ActivityOverview} />
   </Stack.Navigator>
 );
 
