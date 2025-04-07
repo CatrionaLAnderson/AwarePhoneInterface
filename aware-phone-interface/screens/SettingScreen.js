@@ -3,12 +3,13 @@ import { View, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-nat
 import { Text, Searchbar, TouchableRipple } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useDrunkMode } from '@/constants/DrunkModeContext';
+import { useDrunkMode } from '@/constants/DrunkModeContext'; // Access Drunk Mode context
 
 const SettingScreen = ({ navigation }) => {
-    const [searchQuery, setSearchQuery] = React.useState('');
-    const { isDrunkMode } = useDrunkMode();
+    const [searchQuery, setSearchQuery] = React.useState(''); // State for search query
+    const { isDrunkMode } = useDrunkMode(); // Access global Drunk Mode state
 
+    // Settings options for the user, including icons and labels
     const settingsOptions = [
         { label: 'Wi-Fi', icon: 'wifi' },
         { label: 'Bluetooth', icon: 'bluetooth' },
@@ -24,39 +25,43 @@ const SettingScreen = ({ navigation }) => {
         {label: 'Apps', icon: 'apps'},
     ];
 
-    // Get the previous route name
+    // Get the previous route name for navigation (back button text)
     const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || 'Back';
 
     return (
-        
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollViewContent}>
-            <Text style={styles.title}>Settings</Text>
+                <Text style={styles.title}>Settings</Text>
 
-            {/* Back Button & Title */}
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Ionicons name="arrow-back" size={24} color="blue" />
-                <Text style={styles.backButtonText}>{`${previousRouteName}`}</Text>
-            </TouchableOpacity>
-            
-            <Searchbar
-                placeholder="Search"
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={{ marginBottom: 10, backgroundColor: 'lightgrey', borderRadius: 10 }}
-            />
-            {settingsOptions.map((option, index) => (
+                {/* Back Button & Title */}
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={24} color="blue" />
+                    <Text style={styles.backButtonText}>{`${previousRouteName}`}</Text>
+                </TouchableOpacity>
+
+                {/* Search Bar */}
+                <Searchbar
+                    placeholder="Search"
+                    onChangeText={setSearchQuery}
+                    value={searchQuery}
+                    style={{ marginBottom: 10, backgroundColor: 'lightgrey', borderRadius: 10 }}
+                />
+                
+                {/* Render Settings Options */}
+                {settingsOptions.map((option, index) => (
                     <React.Fragment key={index}>
                         <TouchableRipple
                            onPress={() => {
-                            if (option.label === 'Drunk Mode') {
-                                if (isDrunkMode) {
-                                  Alert.alert("Access Denied", "You can't access Drunk Mode settings while Drunk Mode is active.");
-                                  return;
+                                if (option.label === 'Drunk Mode') {
+                                    // Show alert if Drunk Mode is active
+                                    if (isDrunkMode) {
+                                        Alert.alert("Access Denied", "You can't access Drunk Mode settings while Drunk Mode is active.");
+                                        return;
+                                    }
+                                    // Navigate to Drunk Mode settings
+                                    navigation.navigate('DrunkModeSetting');
                                 }
-                                navigation.navigate('DrunkModeSetting');
-                            }
-                        }}
+                            }}
                             style={styles.button}
                         >
                             <View style={styles.buttonContent}>
@@ -64,13 +69,14 @@ const SettingScreen = ({ navigation }) => {
                                 <Text style={styles.text}>{option.label}</Text>
                             </View>
                         </TouchableRipple>
-                        {(index + 1) % 4 === 0 && <View style={styles.gap} />}
+                        {(index + 1) % 4 === 0 && <View style={styles.gap} />} {/* Add gap every 4 items */}
                     </React.Fragment>
                 ))}
             </ScrollView>
         </View>
     );
 };
+
 
 const styles = StyleSheet.create({
     container: {

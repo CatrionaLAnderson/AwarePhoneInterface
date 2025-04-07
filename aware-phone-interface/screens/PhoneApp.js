@@ -3,27 +3,28 @@ import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, Modal 
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useDrunkMode } from "@/constants/DrunkModeContext"; // Import Drunk Mode context
-import { fetchContactsWithRestrictions } from "@/services/ContactService"; // Import contact service
-import { logTrackingEvent } from "@/services/GlobalTracking"; // Import tracking service
-import { logCallTrackingEvent } from "@/services/communicationService"; // Import logCallTrackingEvent
+import { useDrunkMode } from "@/constants/DrunkModeContext"; // Access Drunk Mode context
+import { fetchContactsWithRestrictions } from "@/services/ContactService"; // Fetch contacts with restrictions
+import { logCallTrackingEvent } from "@/services/communicationService"; // Log call tracking event
 
 const PhoneApp = ({ navigation }) => {
-  const { isDrunkMode } = useDrunkMode(); // Use global drunk mode state
+  const { isDrunkMode } = useDrunkMode(); // Drunk Mode state
 
-  const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
+  const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || "Back"; // Navigation state
 
+  // State for contacts, restricted contacts, and modal visibility
   const [contacts, setContacts] = useState([]);
-  const [restrictedContacts, setRestrictedContacts] = useState(new Set()); // Use a Set for fast lookup
+  const [restrictedContacts, setRestrictedContacts] = useState(new Set()); // Fast lookup for restricted contacts
   const [modalVisible, setModalVisible] = useState(false);
   const [currentContact, setCurrentContact] = useState(null);
 
+  // Fetch contacts and restrictions on initial load
   useEffect(() => {
     const loadContacts = async () => {
-      const fetchedContacts = await fetchContactsWithRestrictions();
+      const fetchedContacts = await fetchContactsWithRestrictions(); // Fetch contacts
       setContacts(fetchedContacts);
 
-      // Extract and store restricted contacts in a Set
+      // Filter out restricted contacts
       const blockedContacts = new Set(
         fetchedContacts.filter((contact) => contact.isBlocked).map((contact) => contact.id)
       );
@@ -33,18 +34,20 @@ const PhoneApp = ({ navigation }) => {
     loadContacts();
   }, []);
 
+  // Handle call press, show modal, and log event
   const handleCallPress = async (contact) => {
-    setCurrentContact(contact);
-    setModalVisible(true);
-  
-    // Log the phone call event when the call button is clicked
+    setCurrentContact(contact); // Set current contact
+    setModalVisible(true); // Show modal
+    
+    // Log the call event
     if (contact) {
       await logCallTrackingEvent(contact.name);
     }
   };
 
+  // Render each contact item, apply restricted styles if necessary
   const renderItem = ({ item }) => {
-    const isRestricted = restrictedContacts.has(item.id) && isDrunkMode; // Only block if in Drunk Mode
+    const isRestricted = restrictedContacts.has(item.id) && isDrunkMode; // Block calls if restricted in Drunk Mode
     console.log(`🔍 Checking contact ${item.name} (ID: ${item.id}):`, isRestricted ? "Restricted" : "Not Restricted"); // Debug log
 
     return (
@@ -54,7 +57,7 @@ const PhoneApp = ({ navigation }) => {
           <Text style={styles.phoneNumber}>{item.phoneNumber}</Text>
         </View>
         <TouchableOpacity 
-          style={[styles.callButton, isRestricted && styles.disabledButton]} 
+          style={[styles.callButton, isRestricted && styles.disabledButton]} // Apply disabled styles if restricted
           onPress={() => handleCallPress(item)} 
           disabled={isRestricted}
         >
@@ -74,6 +77,7 @@ const PhoneApp = ({ navigation }) => {
 
       <Text style={styles.header}>Phone</Text>
 
+      {/* Render contacts list */}
       <FlatList data={contacts} keyExtractor={(item) => item.id.toString()} renderItem={renderItem} />
 
       {/* Modal for Calling */}

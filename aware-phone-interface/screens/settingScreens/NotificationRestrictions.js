@@ -1,36 +1,30 @@
 import React, { useEffect, useState } from "react";
-import {
-  Text,
-  StyleSheet,
-  ScrollView,
-  Switch,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Text, StyleSheet, ScrollView, Switch, TouchableOpacity, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Card, Title, Paragraph, List } from "react-native-paper";
 import { fetchAppsWithNotificationStatus, toggleNotificationMute } from "@/services/NotificationService";
 
 const NotificationRestrictions = ({ navigation }) => {
-  const [apps, setApps] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [apps, setApps] = useState([]); // State for storing apps and their notification mute status
+  const [loading, setLoading] = useState(true); // Loading state to manage fetch process
 
-  const previousRouteName =
-    navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
+  const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
+  // Fetch apps and their notification mute status on component mount
   useEffect(() => {
     const loadApps = async () => {
       setLoading(true);
-      const fetchedApps = await fetchAppsWithNotificationStatus();
-      setApps(fetchedApps);
-      setLoading(false);
+      const fetchedApps = await fetchAppsWithNotificationStatus(); // Get apps and mute status
+      setApps(fetchedApps); // Update state with fetched apps
+      setLoading(false); // Set loading state to false
     };
 
     loadApps();
   }, []);
 
+  // Toggle notification mute status for a specific app
   const handleToggle = async (appId, isMuted) => {
-    const success = await toggleNotificationMute(appId, isMuted);
+    const success = await toggleNotificationMute(appId, isMuted); // Update mute status in DB
 
     if (success) {
       setApps((prevApps) =>
@@ -60,22 +54,25 @@ const NotificationRestrictions = ({ navigation }) => {
         </Card.Content>
       </Card>
 
-      {/* Show loading state */}
+      {/* Loading Text */}
       {loading ? <Text style={styles.loadingText}>Loading...</Text> : null}
 
-      {/* Show list of apps with mute toggles */}
+      {/* Display List of Apps with Mute Toggles */}
       <View style={styles.listSection}>
         <List.Section>
           {apps.map((app) => (
             <List.Item
               key={app.id}
               title={app.name}
-              description={app.isMuted ? "Muted" : "Not Muted"}
+              description={app.isMuted ? "Muted" : "Not Muted"} // Show mute status
               titleStyle={styles.listTitle}
               descriptionStyle={styles.listDescription}
               style={styles.listItem}
               right={() => (
-                <Switch value={app.isMuted} onValueChange={() => handleToggle(app.id, app.isMuted)} />
+                <Switch
+                  value={app.isMuted} // Toggle mute status
+                  onValueChange={() => handleToggle(app.id, app.isMuted)} // Update mute status
+                />
               )}
             />
           ))}

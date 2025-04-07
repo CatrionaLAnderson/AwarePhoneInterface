@@ -1,13 +1,13 @@
 import React, { useEffect } from "react";
 import { SafeAreaView, StyleSheet } from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
-import { DrunkModeProvider } from "../constants/DrunkModeContext";
-import AppNavigator from "../navigation/AppNavigator";
-import * as Notifications from "expo-notifications";
+import { DrunkModeProvider } from "../constants/DrunkModeContext"; // Provides Drunk Mode context globally
+import AppNavigator from "../navigation/AppNavigator"; // Handles navigation between app screens
+import * as Notifications from "expo-notifications"; // For configuring notifications
 
 export default function Layout() {
   useEffect(() => {
-    // Configure notification settings
+    // Set notification behavior (alerts, sound, no badge)
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
@@ -15,13 +15,13 @@ export default function Layout() {
         shouldSetBadge: false,
       }),
     });
-  }, []);
+  }, []); // Runs once when the component mounts
 
   return (
-    <DrunkModeProvider>
-      <PaperProvider>
-        <SafeAreaView style={styles.container}>
-          <AppNavigator />
+    <DrunkModeProvider> {/* Wrap the app in DrunkMode context */}
+      <PaperProvider> {/* Provide Material Design components */}
+        <SafeAreaView style={styles.container}> {/* Ensure content stays within safe area */}
+          <AppNavigator /> {/* Main app navigation */}
         </SafeAreaView>
       </PaperProvider>
     </DrunkModeProvider>
@@ -30,6 +30,6 @@ export default function Layout() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 1, // Ensures the container takes up full screen space
   },
 });

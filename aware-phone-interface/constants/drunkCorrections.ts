@@ -1,3 +1,4 @@
+// Mapping of common drunk text input to corrected versions
 export const drunkCorrections: { [key: string]: string } = {
     "drnuk": "drunk",
     "whaaaat": "what",

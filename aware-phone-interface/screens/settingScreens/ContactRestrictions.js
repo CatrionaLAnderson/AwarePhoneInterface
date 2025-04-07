@@ -1,36 +1,30 @@
 import React, { useEffect, useState } from "react";
-import {
-  ScrollView,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Switch,
-  View
-} from "react-native";
+import { ScrollView, Text, StyleSheet, TouchableOpacity, Switch, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { fetchContactsWithRestrictions, toggleContactRestriction } from "@/services/ContactService";
 import { Card, Title, Paragraph, List } from "react-native-paper";
 
 const ContactRestrictions = ({ navigation }) => {
-  const [contacts, setContacts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [contacts, setContacts] = useState([]); // State for storing contacts and their restriction status
+  const [loading, setLoading] = useState(true); // Loading state to manage fetch process
 
-  const previousRouteName =
-    navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
+  const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
+  // Fetch contacts and their restriction status on component mount
   useEffect(() => {
     const loadContacts = async () => {
       setLoading(true);
       const fetchedContacts = await fetchContactsWithRestrictions();
-      setContacts(fetchedContacts);
-      setLoading(false);
+      setContacts(fetchedContacts); // Store contacts with their restriction status
+      setLoading(false); // Update loading state
     };
 
     loadContacts();
   }, []);
 
+  // Toggle the restriction status for a contact
   const handleToggle = async (contactId, isBlocked) => {
-    const success = await toggleContactRestriction(contactId, isBlocked);
+    const success = await toggleContactRestriction(contactId, isBlocked); // Update restriction status in DB
 
     if (success) {
       setContacts((prevContacts) =>
@@ -44,24 +38,24 @@ const ContactRestrictions = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
 
+      {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{previousRouteName}</Text>
       </TouchableOpacity>
 
+      {/* Header Card */}
+      <Card style={styles.card}>
+        <Card.Content style={styles.cardContent}>
+          <Ionicons name="notifications" size={50} style={styles.icon} />
+          <Title style={styles.title}>Contact Restrictions</Title>
+          <Paragraph style={styles.paragraph}>
+            Select which notifications you want to receive/block when Drunk Mode is enabled.
+          </Paragraph>
+        </Card.Content>
+      </Card>
 
-
-            {/* Header Card */}
-            <Card style={styles.card}>
-              <Card.Content style={styles.cardContent}>
-                <Ionicons name="notifications" size={50} style={styles.icon} />
-                <Title style={styles.title}>Contact Restrictions</Title>
-                <Paragraph style={styles.paragraph}>
-                  Select which notifications you want to receive/block when Drunk Mode is enabled.
-                </Paragraph>
-              </Card.Content>
-            </Card>
-
+      {/* Loading or Contact List */}
       {loading ? (
         <Text style={styles.loadingText}>Loading...</Text>
       ) : contacts.length === 0 ? (
@@ -79,8 +73,8 @@ const ContactRestrictions = ({ navigation }) => {
                 style={styles.listItem}
                 right={() => (
                   <Switch
-                    value={contact.isBlocked}
-                    onValueChange={(value) => handleToggle(contact.id, value)}
+                    value={contact.isBlocked} // Toggle contact restriction status
+                    onValueChange={(value) => handleToggle(contact.id, value)} // Update restriction status
                   />
                 )}
               />
@@ -91,7 +85,6 @@ const ContactRestrictions = ({ navigation }) => {
     </ScrollView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

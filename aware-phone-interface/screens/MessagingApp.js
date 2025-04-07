@@ -3,57 +3,61 @@ import {
   View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Keyboard 
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useDrunkMode } from "@/constants/DrunkModeContext";
-import { fetchContactsWithRestrictions } from "@/services/ContactService";
-import { sendMessage, logMessageTrackingEvent } from "@/services/communicationService";
-import DrunkDetectionService from "@/services/DrunkDetectionService";
+import { useDrunkMode } from "@/constants/DrunkModeContext"; // Access Drunk Mode context
+import { fetchContactsWithRestrictions } from "@/services/ContactService"; // Fetch contacts with restrictions
+import { sendMessage, logMessageTrackingEvent } from "@/services/communicationService"; // Send message and log event
+import DrunkDetectionService from "@/services/DrunkDetectionService"; // Service to detect drunk typing behavior
 
 const MessagingApp = ({ navigation }) => {
-  const { isDrunkMode } = useDrunkMode();
+  const { isDrunkMode } = useDrunkMode(); // Drunk Mode context
   const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
-  const [contacts, setContacts] = useState([]);
-  const [restrictedContacts, setRestrictedContacts] = useState(new Set());
-  const [currentContact, setCurrentContact] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState("");
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [previousText, setPreviousText] = useState("");
-  const [typoScore, setTypoScore] = useState(0);
+  // State management
+  const [contacts, setContacts] = useState([]); // Store contacts
+  const [restrictedContacts, setRestrictedContacts] = useState(new Set()); // Store restricted contacts
+  const [currentContact, setCurrentContact] = useState(null); // Store current contact for chat
+  const [messages, setMessages] = useState([]); // Store chat messages
+  const [message, setMessage] = useState(""); // Store the current message input
+  const [keyboardVisible, setKeyboardVisible] = useState(false); // Track keyboard visibility
+  const [previousText, setPreviousText] = useState(""); // Track previous text for typo detection
+  const [typoScore, setTypoScore] = useState(0); // Track typo score for Drunk Mode detection
 
+  // Load contacts on initial render
   useEffect(() => {
     const loadContacts = async () => {
-      const fetchedContacts = await fetchContactsWithRestrictions();
-      setContacts(fetchedContacts);  // Store the contacts in state
+      const fetchedContacts = await fetchContactsWithRestrictions(); // Fetch contacts
+      setContacts(fetchedContacts);  // Store the contacts
     
       const blockedContacts = new Set(
         fetchedContacts.filter((contact) => contact.isBlocked).map((contact) => contact.id)
       );
-      setRestrictedContacts(blockedContacts);
+      setRestrictedContacts(blockedContacts); // Store blocked contacts in Drunk Mode
     };
 
     loadContacts();
   }, []);
 
+  // Handle keyboard visibility
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener("keyboardDidShow", () => {
-      setKeyboardVisible(true);
+      setKeyboardVisible(true); // Keyboard is visible
     });
 
     const keyboardDidHideListener = Keyboard.addListener("keyboardDidHide", () => {
-      setKeyboardVisible(false);
+      setKeyboardVisible(false); // Keyboard is hidden
     });
 
     return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove(); // Cleanup listener
+      keyboardDidHideListener.remove(); // Cleanup listener
     };
   }, []);
 
+  // Open chat with selected contact
   const openChat = (contact) => {
     setCurrentContact({
       ...contact,
-      contact_name: contact.name, // Add contact_name property here
+      contact_name: contact.name, // Add contact_name property for tracking
     });  
     setMessages([
       { id: 1, text: "Hey! How are you?", sender: "them", timestamp: "10:00 AM" },
@@ -61,15 +65,16 @@ const MessagingApp = ({ navigation }) => {
     ]);
   };
 
+  // Send message and handle Drunk Mode logic
   const handleSendMessage = async () => {
-    console.log(currentContact);  // Log currentContact to verify if contact_name exists
+    console.log(currentContact);  // Log current contact info
     
-    const updatedMessages = sendMessage(message, messages, isDrunkMode);
+    const updatedMessages = sendMessage(message, messages, isDrunkMode); // Send message with drunk detection
     const correctedMessage = updatedMessages[updatedMessages.length - 1]?.text || message;
     setMessages(updatedMessages);
-    setMessage("");
+    setMessage(""); // Clear input field
   
-    // Fetch contact name directly from currentContact (using `name` instead of `contact_name`)
+    // Log message with the contact's name
     if (currentContact?.name) {
       await logMessageTrackingEvent(currentContact.name, correctedMessage);
     } else {
@@ -77,14 +82,15 @@ const MessagingApp = ({ navigation }) => {
     }
   };
 
+  // Render individual contact item
   const renderContactItem = ({ item }) => {
-    const isRestricted = restrictedContacts.has(item.id) && isDrunkMode;
+    const isRestricted = restrictedContacts.has(item.id) && isDrunkMode; // Check if the contact is restricted in Drunk Mode
   
     return (
       <TouchableOpacity
-        style={[styles.contactItem, isRestricted && styles.restricted]}
+        style={[styles.contactItem, isRestricted && styles.restricted]} // Apply restricted style if needed
         onPress={() => openChat(item)}
-        disabled={isRestricted}
+        disabled={isRestricted} // Disable interaction if restricted
       >
         <View style={styles.contactInfo}>
           <Text style={styles.contactName}>{item.name}</Text>
@@ -100,15 +106,18 @@ const MessagingApp = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"} 
       style={styles.container}
     >
+      {/* Back button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{previousRouteName}</Text>
       </TouchableOpacity>
 
+      {/* Header */}
       <Text style={styles.header}>{currentContact ? `Chat with ${currentContact.name}` : "Messages"}</Text>
 
       {currentContact ? (
         <>
+          {/* Messages */}
           <FlatList
             data={messages}
             keyExtractor={(item) => item.id.toString()}
@@ -122,6 +131,7 @@ const MessagingApp = ({ navigation }) => {
             keyboardShouldPersistTaps="handled"
           />
 
+          {/* Input field */}
           <View style={[styles.inputContainer, keyboardVisible && styles.inputContainerRaised]}>
             <TextInput
               style={styles.input}
@@ -139,7 +149,7 @@ const MessagingApp = ({ navigation }) => {
                 setPreviousText(text);
                 
                 if (text.length > 5) {
-                  DrunkDetectionService.startDetection({ typoScore: score });
+                  DrunkDetectionService.startDetection({ typoScore: score }); // Start detection if text length is more than 5
                 }
               }}
               onSubmitEditing={handleSendMessage}
@@ -155,6 +165,7 @@ const MessagingApp = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

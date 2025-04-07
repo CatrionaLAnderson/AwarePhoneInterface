@@ -30,7 +30,7 @@ export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) =
       try {
         const savedState = await AsyncStorage.getItem("drunkMode");
         if (savedState !== null) {
-          setDrunkMode(JSON.parse(savedState));
+          setDrunkMode(JSON.parse(savedState)); // Load saved state
         }
       } catch (error) {
         console.error("❌ Error loading Drunk Mode state:", error);
@@ -43,16 +43,18 @@ export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) =
   useEffect(() => {
     const updateDrunkMode = async () => {
       try {
-        await AsyncStorage.setItem("drunkMode", JSON.stringify(drunkMode));
+        await AsyncStorage.setItem("drunkMode", JSON.stringify(drunkMode)); // Save current state
         console.log(`🔄 Drunk Mode: ${drunkMode ? "ON" : "OFF"}`);
 
         if (drunkMode) {
+          // Activate Drunk Mode
           await Notifications.cancelAllScheduledNotificationsAsync();
           scheduleTimedNotification("💧 Stay Hydrated!", "Water = good. Drink some!", 60); // 1 min
           scheduleAutoCorrectReminder(); // Auto-correct reminder after 5 min
           await startDrunkModeSession(); // Start tracking session
           await logTrackingEvent({ event_type: 'drunk_mode', event_detail: 'activated' });
           
+          // Fetch saved alerts and send them
           const { data, error } = await supabase.from('timed_alerts').select('*');
           if (error) {
             console.error('❌ Failed to fetch saved alerts:', error);
@@ -62,6 +64,7 @@ export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) =
             }
           }
         } else {
+          // Deactivate Drunk Mode
           await Notifications.cancelAllScheduledNotificationsAsync();
           await endDrunkModeSession(); // End tracking session
           await logTrackingEvent({ event_type: 'drunk_mode', event_detail: 'deactivated' });
@@ -76,7 +79,7 @@ export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) =
 
   // Toggle Drunk Mode
   const handleToggle = () => {
-    setDrunkMode((prev) => !prev);
+    setDrunkMode((prev) => !prev); // Toggle Drunk Mode state
   };
 
   return (
@@ -87,6 +90,7 @@ export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) =
   );
 };
 
+// Custom hook to use Drunk Mode context
 export const useDrunkMode = (): DrunkModeContextType => {
   const context = useContext(DrunkModeContext);
   if (!context) {

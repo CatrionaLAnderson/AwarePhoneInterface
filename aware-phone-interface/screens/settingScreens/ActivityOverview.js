@@ -13,40 +13,43 @@ import {
 } from "@/services/ActivityService";
 
 const ActivityOverview = ({ navigation }) => {
-  const [trackingData, setTrackingData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [dateData, setDateData] = useState([]);
+  const [trackingData, setTrackingData] = useState([]); // Stores the fetched tracking data
+  const [loading, setLoading] = useState(true); // Indicates if data is loading
+  const [modalVisible, setModalVisible] = useState(false); // Controls the modal visibility
+  const [selectedDate, setSelectedDate] = useState(null); // Selected date for viewing detailed activity
+  const [dateData, setDateData] = useState([]); // Stores the activity data for the selected date
 
   const previousRouteName =
-    navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
+    navigation.getState().routes[navigation.getState().index - 1]?.name || "Back"; // Get previous route name for back button
 
+  // Fetch tracking data on initial load
   useEffect(() => {
     const fetchData = async () => {
       try {
         const data = await fetchTrackingData();
-        setTrackingData(data);
+        setTrackingData(data); // Set the fetched data
       } catch (error) {
         console.error("Error fetching tracking data:", error);
       } finally {
-        setLoading(false);
+        setLoading(false); // Data fetching complete
       }
     };
 
-    fetchData();
+    fetchData(); // Call fetch data function
   }, []);
 
+  // Handle the selection of a specific date
   const handleDateSelection = (date) => {
-    setSelectedDate(date);
-    setDateData(groupedData[date]);
-    setModalVisible(true);
+    setSelectedDate(date); // Set the selected date
+    setDateData(groupedData[date]); // Set the data for the selected date
+    setModalVisible(true); // Show the modal with detailed activities
   };
 
-  const groupedData = groupDataByDate(trackingData);
+  const groupedData = groupDataByDate(trackingData); // Group tracking data by date
 
+  // Render each activity item inside the modal
   const renderItem = ({ item }) => {
-    if (!item) return null;
+    if (!item) return null; // Prevent rendering if the item is empty
   
     return (
       <View style={styles.modalItemCard}>
@@ -73,66 +76,69 @@ const ActivityOverview = ({ navigation }) => {
   
         {/* Timestamp */}
         <Text style={styles.modalItemTimestamp}>
-          {formatDate(item.timestamp)}
+          {formatDate(item.timestamp)} {/* Format and display the timestamp */}
         </Text>
   
         {/* Event Details */}
         {item.event_type === "message" && item.message_preview && (
           <Text style={styles.modalItemContent}>
-           {item.message_preview || "No preview available"}
+           {item.message_preview || "No preview available"} {/* Show message preview */}
           </Text>
         )}
   
         {item.event_type === "phone_call" && (
           <Text style={styles.modalItemContent}>
-            {item.contact_name || "Unknown"}
+            {item.contact_name || "Unknown"} {/* Display the contact name for phone calls */}
           </Text>
         )}
   
         {item.event_type === "notification_received" && item.notification_content && (
           <Text style={styles.modalItemContent}>
-            {item.notification_content || "No content"}
+            {item.notification_content || "No content"} {/* Display notification content */}
           </Text>
         )}
       </View>
     );
   };
 
-  const renderDateSection = () => (
-    <FlatList
-      data={Object.keys(groupedData)}
-      keyExtractor={(item) => item}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.dateSection}
-          onPress={() => handleDateSelection(item)}
-        >
-          <Text style={styles.dateText}>{item} Activity</Text>
-          <Ionicons name="chevron-down" size={20} color="#007bff" />
-        </TouchableOpacity>
-      )}
-    />
-  );
+  // Render the list of dates for which activity data is available
+  // const renderDateSection = () => (
+  //   <FlatList
+  //     data={Object.keys(groupedData)} // Get the keys (dates) from groupedData
+  //     keyExtractor={(item) => item}
+  //     renderItem={({ item }) => (
+  //       <TouchableOpacity
+  //         style={styles.dateSection}
+  //         onPress={() => handleDateSelection(item)} // Open modal for selected date
+  //       >
+  //         <Text style={styles.dateText}>{item} Activity</Text>
+  //         <Ionicons name="chevron-down" size={20} color="#007bff" />
+  //       </TouchableOpacity>
+  //     )}
+  //   />
+  // );
 
+  // Render content inside the modal for the selected date
   const renderModalContent = () => (
     <View style={styles.modalContent}>
       <Text style={styles.modalTitle}>Activities on {selectedDate}</Text>
-      <Text style={styles.dateText}>Total Activity: {dateData.length}</Text>
+      <Text style={styles.dateText}>Total Activity: {dateData.length}</Text> {/* Display total activities */}
       <FlatList
-        data={dateData}
+        data={dateData} // Display activities for the selected date
         keyExtractor={(item) => item.id}
         style={styles.list}
         renderItem={renderItem}
       />
       <TouchableOpacity
         style={styles.closeButton}
-        onPress={() => setModalVisible(false)}
+        onPress={() => setModalVisible(false)} // Close the modal
       >
         <Text style={styles.closeButtonText}>Close</Text>
       </TouchableOpacity>
     </View>
   );
 
+  // Get data for the bar chart
   const { messageCount, callCount, notificationCount } = getBarChartData(trackingData);
   const maxCount = Math.max(messageCount, callCount, notificationCount);
 

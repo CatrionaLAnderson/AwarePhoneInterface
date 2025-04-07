@@ -1,43 +1,38 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Switch,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Card, Title, Paragraph, List } from "react-native-paper";
 import { fetchAllApps, fetchAppRestrictions, toggleAppRestriction } from "@/services/AppService";
 
 const AppRestrictions = ({ navigation }) => {
-  const [apps, setApps] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [apps, setApps] = useState([]); // State for storing apps and their restriction status
+  const [loading, setLoading] = useState(true); // Loading state to handle fetching data
 
-  const previousRouteName =
-    navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
+  const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || 'Back';
 
+  // Fetch all apps and their restriction status on component mount
   useEffect(() => {
     const loadApps = async () => {
       setLoading(true);
       try {
         const allApps = await fetchAllApps();
-        const updatedApps = await fetchAppRestrictions(allApps);
-        setApps(updatedApps); // Only update apps **after** merging restrictions
+        const updatedApps = await fetchAppRestrictions(allApps); // Merge apps and their restriction data
+        setApps(updatedApps); // Update state with the app data
       } catch (error) {
         console.error("Error loading apps:", error);
       }
-      setLoading(false);
+      setLoading(false); // Set loading to false after fetching data
     };
 
     loadApps();
   }, []);
 
+  // Handle toggle of app restriction status
   const handleToggle = async (appId, isRestricted) => {
-    const success = await toggleAppRestriction(appId, isRestricted);
+    const success = await toggleAppRestriction(appId, isRestricted); // Toggle app restriction in DB
 
     if (success) {
+      // Update the app state with the new restriction status
       setApps((prevApps) =>
         prevApps.map((app) =>
           app.id === appId ? { ...app, isRestricted: isRestricted } : app
@@ -49,6 +44,7 @@ const AppRestrictions = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
 
+      {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{previousRouteName}</Text>
@@ -65,6 +61,7 @@ const AppRestrictions = ({ navigation }) => {
         </Card.Content>
       </Card>
 
+      {/* Loading or App List */}
       {loading ? (
         <Text style={styles.loadingText}>Loading...</Text>
       ) : apps.length === 0 ? (
@@ -82,8 +79,8 @@ const AppRestrictions = ({ navigation }) => {
                 style={styles.listItem}
                 right={() => (
                   <Switch
-                    value={app.isRestricted}
-                    onValueChange={(value) => handleToggle(app.id, value)}
+                    value={app.isRestricted} // Toggle app restriction state
+                    onValueChange={(value) => handleToggle(app.id, value)} // Update restriction status
                   />
                 )}
               />

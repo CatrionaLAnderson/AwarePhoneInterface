@@ -16,6 +16,7 @@ import { Searchbar } from "react-native-paper";
 import { useDrunkMode } from "../constants/DrunkModeContext";
 import { fetchAllApps, fetchAppRestrictions, subscribeToAppRestrictions } from "@/services/AppService";
 
+// Constants for grid layout
 const numColumns = 4;
 const screenWidth = Dimensions.get("window").width;
 const itemSize = screenWidth / numColumns - 20;
@@ -24,61 +25,62 @@ const dockSize = screenWidth / 5;
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const { isDrunkMode, toggleDrunkMode } = useDrunkMode();
+  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); // Access Drunk Mode context
 
-  const [apps, setApps] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [apps, setApps] = useState([]); // Store the list of apps
+  const [searchQuery, setSearchQuery] = useState(""); // Store the search query
+  const [loading, setLoading] = useState(true); // Loading state
 
-  // Load ALL apps and fetch restrictions on initial load
-    useEffect(() => {
-      const loadAppsAndRestrictions = async () => {
-        setLoading(true);
-        try {
-          const fetchedApps = await fetchAllApps();
-          const restrictedApps = await fetchAppRestrictions(fetchedApps); // Fetch restrictions after loading apps
-          setApps(restrictedApps); // Set the restricted apps directly
-        } catch (error) {
-          console.error("Error fetching apps or restrictions:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
+  // Load all apps and their restrictions initially
+  useEffect(() => {
+    const loadAppsAndRestrictions = async () => {
+      setLoading(true);
+      try {
+        const fetchedApps = await fetchAllApps();
+        const restrictedApps = await fetchAppRestrictions(fetchedApps);
+        setApps(restrictedApps); // Update the app list
+      } catch (error) {
+        console.error("Error fetching apps or restrictions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      loadAppsAndRestrictions();
-    }, []); // Run only on first render
+    loadAppsAndRestrictions();
+  }, []); // Run on first render
 
-  // Fetch ONLY restrictions when Drunk Mode changes
-useEffect(() => {
-  const loadRestrictions = async () => {
-    setLoading(true);
-    try {
-      const updatedApps = await fetchAppRestrictions(apps);
-      setApps(updatedApps);
-    } catch (error) {
-      console.error("Error fetching restrictions on drunk mode toggle:", error);
-    } finally {
-      setLoading(false);
+  // Fetch restrictions only when Drunk Mode changes
+  useEffect(() => {
+    const loadRestrictions = async () => {
+      setLoading(true);
+      try {
+        const updatedApps = await fetchAppRestrictions(apps);
+        setApps(updatedApps); // Update the app list with new restrictions
+      } catch (error) {
+        console.error("Error fetching restrictions on drunk mode toggle:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (apps.length > 0) {
+      loadRestrictions(); // Fetch restrictions when Drunk Mode toggles
     }
-  };
+  }, [isDrunkMode]); // Dependency on Drunk Mode state
 
-  if (apps.length > 0) {
-    loadRestrictions();
-  }
-}, [isDrunkMode]); // Runs only when Drunk Mode toggles
-
-  // Subscribe to real-time restriction changes
+  // Subscribe to real-time restriction updates
   useEffect(() => {
     const unsubscribe = subscribeToAppRestrictions(async () => {
       const updatedApps = await fetchAppRestrictions(apps);
-      setApps(updatedApps);
+      setApps(updatedApps); // Update the app list when restrictions change
     });
 
     return () => {
-      unsubscribe();
+      unsubscribe(); // Unsubscribe when the component unmounts
     };
   }, []);
 
+  // Handlers for emergency actions (only show up when in Drunk Mode)
   const handleShareLocation = () => {
     Alert.alert("Location Shared", "📍 Location shared with emergency contacts.", [{ text: "OK" }]);
   };
@@ -94,6 +96,7 @@ useEffect(() => {
     Alert.alert("Designated Driver", "📞 Calling your designated driver.", [{ text: "OK" }]);
   };
 
+  // Filter apps based on Drunk Mode and search query
   const visibleApps = isDrunkMode
     ? apps.filter((app) => !app.isRestricted)
     : apps.filter((app) =>
@@ -130,6 +133,7 @@ useEffect(() => {
 
   return (
     <View style={styles.container}>
+      {/* Search bar */}
       <StatusBar barStyle="light-content" />
       <Searchbar 
         placeholder="Search"
@@ -154,13 +158,14 @@ useEffect(() => {
           data={visibleApps}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
-          key={isDrunkMode ? 'drunk' : 'sober'}  // Force re-render by changing key
+          key={isDrunkMode ? 'drunk' : 'sober'}
           numColumns={isDrunkMode ? 3 : numColumns}
           contentContainerStyle={styles.grid}
         />
       )}
 
-{!isDrunkMode && (
+      {/* Dock for Drunk Mode */}
+      {!isDrunkMode && (
         <View style={styles.dockContainer}>
           <FlatList
             data={visibleApps.slice(0, 4)}
@@ -172,7 +177,8 @@ useEffect(() => {
         </View>
       )}
 
-    {isDrunkMode && (
+      {/* Drunk Mode Buttons */}
+      {isDrunkMode && (
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
@@ -192,8 +198,6 @@ useEffect(() => {
         </ScrollView>
       )}
     </View>
-
-    
   );
 }
 

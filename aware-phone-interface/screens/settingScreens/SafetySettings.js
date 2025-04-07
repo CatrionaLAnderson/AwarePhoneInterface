@@ -1,38 +1,34 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
+import { Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { Card, Title, Paragraph, Button } from "react-native-paper";
 import { fetchAllContacts } from "@/services/ContactService";
-import { fetchSafetySettings, saveSafetySettings } from "@/services/safetyService"; // Import fetch & save functions
+import { fetchSafetySettings, saveSafetySettings } from "@/services/safetyService"; // Fetch & save functions
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const SafetySettings = ({ navigation }) => {
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
+  // State variables to store contact info and safety settings
   const [contacts, setContacts] = useState([]);
   const [selectedEmergencyContact, setSelectedEmergencyContact] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [transportMode, setTransportMode] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Transport options for dropdown selection
   const transportOptions = [
     { label: "Public Transport", value: "public" },
     { label: "Private Transport", value: "private" },
   ];
 
+  // Fetch contacts and saved safety settings on component mount
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-
-      // Fetch contacts
+      
+      // Fetch contacts and format them for dropdown
       const fetchedContacts = await fetchAllContacts();
       const formattedContacts = fetchedContacts.map((contact) => ({
         label: contact.name,
@@ -40,9 +36,8 @@ const SafetySettings = ({ navigation }) => {
       }));
       setContacts(formattedContacts);
 
-      // Fetch saved safety settings
+      // Fetch and set saved safety settings
       const safetySettings = await fetchSafetySettings();
-
       if (safetySettings) {
         setSelectedEmergencyContact(safetySettings.emergency_contact_id);
         setSelectedDriver(safetySettings.designated_driver_id);
@@ -55,13 +50,14 @@ const SafetySettings = ({ navigation }) => {
     loadData();
   }, []);
 
+  // Handle saving of safety settings
   const handleSaveSettings = async () => {
     const success = await saveSafetySettings(selectedEmergencyContact, selectedDriver, transportMode);
 
     if (success) {
-      Alert.alert("Success", "Safety settings saved successfully!");
+      Alert.alert("Success", "Safety settings saved successfully!"); // Success message
     } else {
-      Alert.alert("Error", "Failed to save safety settings.");
+      Alert.alert("Error", "Failed to save safety settings."); // Error message
     }
   };
 
@@ -70,7 +66,7 @@ const SafetySettings = ({ navigation }) => {
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
-        <Text style={styles.backButtonText}>{`${previousRouteName}`}</Text>
+        <Text style={styles.backButtonText}>{previousRouteName}</Text>
       </TouchableOpacity>
 
       {/* Header Card */}
@@ -84,51 +80,49 @@ const SafetySettings = ({ navigation }) => {
         </Card.Content>
       </Card>
 
-      {loading ? (
-        <Text style={styles.loadingText}>Loading...</Text>
-      ) : (
-        <>
-          {/* Emergency Contact Dropdown */}
-          <Text style={styles.label}>Select Emergency Contact</Text>
-          <Dropdown
-            data={contacts}
-            labelField="label"
-            valueField="value"
-            value={selectedEmergencyContact}
-            onChange={(item) => setSelectedEmergencyContact(item.value)}
-            placeholder="Choose a contact"
-            style={styles.dropdown}
-          />
+      {/* Loading State */}
+      {loading ? <Text style={styles.loadingText}>Loading...</Text> : null}
 
-          {/* Designated Driver Dropdown */}
-          <Text style={styles.label}>Select Designated Driver</Text>
-          <Dropdown
-            data={contacts}
-            labelField="label"
-            valueField="value"
-            value={selectedDriver}
-            onChange={(item) => setSelectedDriver(item.value)}
-            placeholder="Choose a contact"
-            style={styles.dropdown}
-          />
+      {/* Dropdown for Emergency Contact */}
+      <Text style={styles.label}>Select Emergency Contact</Text>
+      <Dropdown
+        data={contacts}
+        labelField="label"
+        valueField="value"
+        value={selectedEmergencyContact}
+        onChange={(item) => setSelectedEmergencyContact(item.value)} // Update selected contact
+        placeholder="Choose a contact"
+        style={styles.dropdown}
+      />
 
-          {/* Transport Mode Dropdown */}
-          <Text style={styles.label}>Select Transport Mode</Text>
-          <Dropdown
-            data={transportOptions}
-            labelField="label"
-            valueField="value"
-            value={transportMode}
-            onChange={(item) => setTransportMode(item.value)}
-            placeholder="Choose transport mode"
-            style={styles.dropdown}
-          />
+      {/* Dropdown for Designated Driver */}
+      <Text style={styles.label}>Select Designated Driver</Text>
+      <Dropdown
+        data={contacts}
+        labelField="label"
+        valueField="value"
+        value={selectedDriver}
+        onChange={(item) => setSelectedDriver(item.value)} // Update selected driver
+        placeholder="Choose a contact"
+        style={styles.dropdown}
+      />
 
-          <Button mode="contained" onPress={handleSaveSettings} style={styles.button}>
-            Save Settings
-          </Button>
-        </>
-      )}
+      {/* Dropdown for Transport Mode */}
+      <Text style={styles.label}>Select Transport Mode</Text>
+      <Dropdown
+        data={transportOptions}
+        labelField="label"
+        valueField="value"
+        value={transportMode}
+        onChange={(item) => setTransportMode(item.value)} // Update transport mode
+        placeholder="Choose transport mode"
+        style={styles.dropdown}
+      />
+
+      {/* Save Settings Button */}
+      <Button mode="contained" onPress={handleSaveSettings} style={styles.button}>
+        Save Settings
+      </Button>
     </ScrollView>
   );
 };

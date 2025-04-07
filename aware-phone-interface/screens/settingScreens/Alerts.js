@@ -11,6 +11,7 @@ const Alerts = ({ navigation }) => {
   const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || 'Back';
   const { isDrunkMode } = useDrunkMode();
 
+  // State hooks for managing alert data, loading, and editing
   const [alerts, setAlerts] = useState([]);
   const [alertName, setAlertName] = useState('');
   const [alertContent, setAlertContent] = useState('');
@@ -18,16 +19,17 @@ const Alerts = ({ navigation }) => {
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    requestNotificationPermissions();
-    fetchAlerts();
+    requestNotificationPermissions(); // Request notification permissions
+    fetchAlerts(); // Fetch alerts from database
   }, []);
 
   useEffect(() => {
     if (isDrunkMode) {
-      triggerDrunkModeAlerts();
+      triggerDrunkModeAlerts(); // Trigger alerts when Drunk Mode is active
     }
   }, [isDrunkMode]);
 
+  // Request permission to show notifications
   const requestNotificationPermissions = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') {
@@ -35,6 +37,7 @@ const Alerts = ({ navigation }) => {
     }
   };
 
+  // Fetch alerts from database and set state
   const fetchAlerts = async () => {
     setLoading(true);
     const data = await fetchAlertsFromDB();
@@ -42,16 +45,19 @@ const Alerts = ({ navigation }) => {
     setLoading(false);
   };
 
+  // Add or update alert in the database
   const addAlert = async () => {
-    Keyboard.dismiss();
+    Keyboard.dismiss(); // Dismiss keyboard when done
 
     if (alertName && alertContent) {
       const updatedAlert = await addOrUpdateAlert(alertName, alertContent, editingId);
       if (updatedAlert) {
         if (editingId) {
+          // Update existing alert in the list
           setAlerts(alerts.map(alert => alert.id === editingId ? updatedAlert : alert));
-          setEditingId(null);
+          setEditingId(null); // Reset editing state
         } else {
+          // Add new alert to the list
           setAlerts(prev => [...prev, updatedAlert]);
         }
         setAlertName('');
@@ -60,9 +66,11 @@ const Alerts = ({ navigation }) => {
     }
   };
 
+  // Delete alert from the database
   const deleteAlert = async (id) => {
     const success = await deleteAlertFromDB(id);
     if (success) {
+      // Remove alert from the list
       setAlerts(alerts.filter(alert => alert.id !== id));
     }
   };
@@ -82,6 +90,7 @@ const Alerts = ({ navigation }) => {
           </Card.Content>
         </Card>
 
+        {/* Back Button */}
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="blue" />
           <Text style={styles.backButtonText}>{previousRouteName}</Text>
@@ -139,7 +148,6 @@ const Alerts = ({ navigation }) => {
     </TouchableWithoutFeedback>
   );
 };
-
 const styles = StyleSheet.create({
   container: 
   { flex: 1, 

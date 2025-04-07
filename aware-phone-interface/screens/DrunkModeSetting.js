@@ -1,22 +1,18 @@
 import React from "react";
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-} from "react-native";
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { Card, Title, Paragraph, TouchableRipple } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useDrunkMode } from "../constants/DrunkModeContext"; // ✅ Use Context API
+import { useDrunkMode } from "../constants/DrunkModeContext"; // Use Context API to manage Drunk Mode state
 
 const DrunkModeScreen = ({ navigation }) => {
-  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); // ✅ Use context instead of ViewModel
+  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); // Access Drunk Mode state and toggle function
 
+  // Get the previous route name for navigation
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
+  // Define the drunk mode options
   const drunkOptions = [
     { label: "App restrictions", icon: "apps" },
     { label: "Contact restrictions", icon: "contacts" },
@@ -29,11 +25,8 @@ const DrunkModeScreen = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Back Button & Title */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{`${previousRouteName}`}</Text>
       </TouchableOpacity>
@@ -49,18 +42,20 @@ const DrunkModeScreen = ({ navigation }) => {
         </Card.Content>
       </Card>
 
+      {/* Drunk Mode Toggle */}
       <View style={styles.toggleContainer}>
-              <Text style={styles.toggleText}>Drunk Mode</Text>
-              <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
-                <Text style={styles.drunkModeButtonText}>{isDrunkMode ? "ON" : "OFF"}</Text>
-              </TouchableOpacity>
-            </View>
+        <Text style={styles.toggleText}>Drunk Mode</Text>
+        <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
+          <Text style={styles.drunkModeButtonText}>{isDrunkMode ? "ON" : "OFF"}</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Drunk Mode Options */}
+      {/* Drunk Mode Options List */}
       {drunkOptions.map((option, index) => (
         <React.Fragment key={index}>
           <TouchableRipple
             onPress={() => {
+              // Navigate to the appropriate screen based on the selected option
               if (option.label === "App restrictions") {
                 navigation.navigate("AppRestrictions");
               } else if (option.label === "Contact restrictions") {
@@ -73,10 +68,10 @@ const DrunkModeScreen = ({ navigation }) => {
                 navigation.navigate("HealthRecommendations");
               } else if (option.label === "Safety") {
                 navigation.navigate("SafetySettings");
-              } else if (option.label === "Activity Overview")
+              } else if (option.label === "Activity Overview") {
                 navigation.navigate("ActivityOverview");
               }
-            }
+            }}
             style={styles.button}
           >
             <View style={styles.buttonContent}>

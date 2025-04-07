@@ -1,54 +1,49 @@
-import React, {useState } from 'react';
-import {
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-} from 'react-native';
+import React, {useState} from 'react';
+import {Text, StyleSheet, ScrollView, TouchableOpacity, TextInput} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Card, Title, Paragraph, List } from 'react-native-paper';
+import {Card, Title, Paragraph, List} from 'react-native-paper';
 
-const HealthRecommendations = ({ navigation }) => {
+const HealthRecommendations = ({navigation}) => {
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
+  // State variables for weight, height, BMI, alcohol units, and BAC
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [bmi, setBmi] = useState(null);
   const [alcoholUnits, setAlcoholUnits] = useState(null);
   const [bac, setBac] = useState(null);
 
+  // Calculate BMI based on user input
   const calculateBMI = () => {
     if (weight && height) {
       const heightMeters = height / 100;
       const bmiValue = (weight / (heightMeters * heightMeters)).toFixed(2);
       setBmi(bmiValue);
-      calculateAlcoholUnits(bmiValue);
+      calculateAlcoholUnits(bmiValue); // Calculate alcohol units based on BMI
     }
   };
 
+  // Calculate recommended alcohol units based on BMI
   const calculateAlcoholUnits = (bmiValue) => {
     let recommendedUnits = bmiValue < 18.5 ? 2 : bmiValue > 25 ? 4 : 3;
-    setAlcoholUnits(recommendedUnits);
+    setAlcoholUnits(recommendedUnits); // Set recommended units
   };
 
+  // Estimate BAC based on the number of drinks consumed
   const calculateBAC = (drinks) => {
     if (weight) {
-      const bodyWater = 0.58; 
-      const metabolismRate = 0.015;
+      const bodyWater = 0.58; // Average body water content
+      const metabolismRate = 0.015; // Metabolism rate
       const bacValue = ((drinks * 10) / (weight * bodyWater) - metabolismRate).toFixed(3);
-      setBac(Math.max(bacValue, 0));
+      setBac(Math.max(bacValue, 0)); // Prevent BAC from being negative
     }
   };
 
   return (
     <ScrollView style={styles.container}>
-      {/* Back Button & Title */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{`${previousRouteName}`}</Text>
       </TouchableOpacity>
@@ -64,28 +59,28 @@ const HealthRecommendations = ({ navigation }) => {
         </Card.Content>
       </Card>
 
-      {/* BMI Calculator */}
+      {/* BMI Calculator Section */}
       <Text style={styles.sectionTitle}>BMI Calculator</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter weight (kg)"
         keyboardType="numeric"
         value={weight}
-        onChangeText={setWeight}
+        onChangeText={setWeight} // Set weight state
       />
       <TextInput
         style={styles.input}
         placeholder="Enter height (cm)"
         keyboardType="numeric"
         value={height}
-        onChangeText={setHeight}
+        onChangeText={setHeight} // Set height state
       />
       <TouchableOpacity style={styles.button} onPress={calculateBMI}>
         <Text style={styles.buttonText}>Calculate BMI</Text>
       </TouchableOpacity>
       {bmi && <Text style={styles.resultText}>Your BMI: {bmi}</Text>}
 
-      {/* Alcohol Unit Recommendations */}
+      {/* Alcohol Unit Recommendations Section */}
       {alcoholUnits && (
         <Card style={styles.infoCard}>
           <Card.Content>
@@ -99,17 +94,17 @@ const HealthRecommendations = ({ navigation }) => {
         </Card>
       )}
 
-      {/* BAC Estimation */}
+      {/* BAC Estimation Section */}
       <Text style={styles.sectionTitle}>Blood Alcohol Content (BAC) Estimation</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter number of drinks consumed"
         keyboardType="numeric"
-        onChangeText={(drinks) => calculateBAC(parseFloat(drinks))}
+        onChangeText={(drinks) => calculateBAC(parseFloat(drinks))} // Calculate BAC based on drinks consumed
       />
       {bac !== null && <Text style={styles.resultText}>Estimated BAC: {bac}%</Text>}
 
-      {/* Smart Drinking Tips */}
+      {/* Smart Drinking Tips Section */}
       <List.Section>
         <List.Subheader style={styles.sectionTitle}>Smart Drinking Tips</List.Subheader>
         <List.Item title="Drink water between alcoholic drinks" left={() => <Ionicons name="water" size={24} />} />
