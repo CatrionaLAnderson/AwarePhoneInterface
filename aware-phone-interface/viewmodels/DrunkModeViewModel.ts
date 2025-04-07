@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DrunkModeModel from "../models/DrunkModeModel";
@@ -31,8 +30,18 @@ export default function useDrunkModeViewModel() {
     await AsyncStorage.setItem("drunkMode", JSON.stringify(drunkMode.getStatus()));
   };
 
+  // Function to activate drunk mode directly
+  const activateDrunkMode = async () => {
+    if (!drunkMode.getStatus()) {
+      drunkMode.toggleDrunkMode();
+      setDrunkMode(new DrunkModeModel());
+      await AsyncStorage.setItem("drunkMode", JSON.stringify(true));
+    }
+  };
+
   return {
     isDrunkModeActive: drunkMode.getStatus(),
     toggleDrunkMode,
+    activateDrunkMode,
   };
 }

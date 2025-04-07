@@ -1,5 +1,6 @@
 import { fuzzyCorrectWord } from "./fuzzyMatching";
 import { notifyAutoCorrectUsage } from "./NotificationService2"; // Import notification function
+import { logTrackingEvent } from "./GlobalTracking";
 
 export interface Message {
   id: number;
@@ -39,4 +40,21 @@ export const sendMessage = (
   };
 
   return [...messages, newMessage];
+};
+
+export const logMessageTrackingEvent = async (contactName: string, message: string) => {
+  await logTrackingEvent({
+    event_type: "message",
+    event_detail: `Message to ${contactName || "Unknown"}`,
+    message_preview: message.slice(0, 50),
+    contact_name: contactName || "Unknown",
+  });
+};
+
+export const logCallTrackingEvent = async (contactName: string) => {
+  await logTrackingEvent({
+    event_type: "phone_call",
+    event_detail: `Call to ${contactName || "Unknown"}`,
+    contact_name: contactName || "Unknown",
+  });
 };

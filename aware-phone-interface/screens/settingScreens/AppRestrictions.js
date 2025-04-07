@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
+  ScrollView,
   Switch,
-  FlatList,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { Card, Title, Paragraph, List } from "react-native-paper";
 import { fetchAllApps, fetchAppRestrictions, toggleAppRestriction } from "@/services/AppService";
 
 const AppRestrictions = ({ navigation }) => {
@@ -18,21 +18,21 @@ const AppRestrictions = ({ navigation }) => {
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
-    useEffect(() => {
-      const loadApps = async () => {
-        setLoading(true);
-        try {
-          const allApps = await fetchAllApps();
-          const updatedApps = await fetchAppRestrictions(allApps);
-          setApps(updatedApps); // Only update apps **after** merging restrictions
-        } catch (error) {
-          console.error("Error loading apps:", error);
-        }
-        setLoading(false);
-      };
-    
-      loadApps();
-    }, []);
+  useEffect(() => {
+    const loadApps = async () => {
+      setLoading(true);
+      try {
+        const allApps = await fetchAllApps();
+        const updatedApps = await fetchAppRestrictions(allApps);
+        setApps(updatedApps); // Only update apps **after** merging restrictions
+      } catch (error) {
+        console.error("Error loading apps:", error);
+      }
+      setLoading(false);
+    };
+
+    loadApps();
+  }, []);
 
   const handleToggle = async (appId, isRestricted) => {
     const success = await toggleAppRestriction(appId, isRestricted);
@@ -46,50 +46,83 @@ const AppRestrictions = ({ navigation }) => {
     }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.item}>
-      <Text style={styles.itemText}>{item.name}</Text>
-      <Switch
-        value={item.isRestricted}
-        onValueChange={(value) => handleToggle(item.id, value)}
-      />
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>App Restrictions</Text>
+    <ScrollView style={styles.container}>
 
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{previousRouteName}</Text>
       </TouchableOpacity>
 
-      <View style={styles.appSelection}>
-        {loading ? (
-          <ActivityIndicator size="large" color="blue" />
-        ) : apps.length === 0 ? (
-          <Text style={styles.noAppsText}>No apps found.</Text>
-        ) : (
-          <FlatList data={apps} renderItem={renderItem} keyExtractor={(item) => item.id} />
-        )}
-      </View>
-    </View>
+      {/* Header Card */}
+      <Card style={styles.card}>
+        <Card.Content style={styles.cardContent}>
+          <Ionicons name="apps" size={50} style={styles.icon} />
+          <Title style={styles.title}>App Restrictions</Title>
+          <Paragraph style={styles.paragraph}>
+           Select which apps you want to restrict access to when drunk mode is enabled.
+          </Paragraph>
+        </Card.Content>
+      </Card>
+
+      {loading ? (
+        <Text style={styles.loadingText}>Loading...</Text>
+      ) : apps.length === 0 ? (
+        <Text style={styles.noDataText}>No apps found.</Text>
+      ) : (
+        <View style={styles.listSection}>
+          <List.Section>
+            {apps.map((app) => (
+              <List.Item
+                key={app.id}
+                title={app.name}
+                description={app.isRestricted ? "Restricted" : "Not Restricted"}
+                titleStyle={styles.listTitle}
+                descriptionStyle={styles.listDescription}
+                style={styles.listItem}
+                right={() => (
+                  <Switch
+                    value={app.isRestricted}
+                    onValueChange={(value) => handleToggle(app.id, value)}
+                  />
+                )}
+              />
+            ))}
+          </List.Section>
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
-    padding: 10,
-    paddingLeft: 15,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+  },
+  card: {
+    marginTop: 60,
+    marginVertical: 16,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    padding: 16,
+  },
+  cardContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  icon: {
+    marginBottom: 10,
   },
   title: {
-    fontSize: 30,
+    fontSize: 20,
     fontWeight: 'bold',
-    paddingTop: 60,
-    paddingBottom: 10,
+    textAlign: 'center',
+  },
+  paragraph: {
+    fontSize: 16,
+    textAlign: 'center',
   },
   backButton: {
     flexDirection: 'row',
@@ -103,24 +136,40 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     color: 'blue',
   },
-  appSelection: {
-    marginTop: 20,
-  },
-  item: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  itemText: {
-    fontSize: 18,
-  },
-  noAppsText: {
-    fontSize: 16,
+  loadingText: {
     textAlign: 'center',
+    marginVertical: 10,
+  },
+  noDataText: {
+    textAlign: 'center',
+    marginVertical: 10,
+    fontSize: 16,
     color: 'gray',
+  },
+  listSection: {
+    marginVertical: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  listItem: {
+    backgroundColor: '#fff',
+    marginVertical: 5,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  listTitle: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  listDescription: {
+    color: 'gray',
+    fontSize: 14,
   },
 });
 

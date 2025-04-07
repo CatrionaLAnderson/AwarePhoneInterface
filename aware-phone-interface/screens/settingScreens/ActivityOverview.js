@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { supabase } from "@/lib/supabase"; 
 import { Card, Title, Paragraph } from "react-native-paper";
 import { Svg, Rect } from "react-native-svg"; 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons"; 
 import { Dimensions } from "react-native";
+import {
+  fetchTrackingData,
+  formatDate,
+  groupDataByDate,
+  getBarChartData,
+} from "@/services/ActivityService";
 
 const ActivityOverview = ({ navigation }) => {
   const [trackingData, setTrackingData] = useState([]);
@@ -18,51 +23,19 @@ const ActivityOverview = ({ navigation }) => {
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
   useEffect(() => {
-    const fetchTrackingData = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
-          .from("tracking_data")
-          .select("*")
-          .in("event_type", ["message", "phone_call", "notification_received"])
-          .order("timestamp", { ascending: false }); // Order by most recent data
-
-        if (error) {
-          console.error("Error fetching data:", error);
-          setLoading(false);
-          return;
-        }
-
+        const data = await fetchTrackingData();
         setTrackingData(data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching tracking data:", err);
+      } catch (error) {
+        console.error("Error fetching tracking data:", error);
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchTrackingData();
+    fetchData();
   }, []);
-
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-
-    return `${day}/${month}/${year}`;
-  };
-
-  const groupDataByDate = () => {
-    const groupedData = {};
-    trackingData.forEach((item) => {
-      const date = formatDate(item.timestamp); 
-      if (!groupedData[date]) {
-        groupedData[date] = [];
-      }
-      groupedData[date].push(item);
-    });
-    return groupedData;
-  };
 
   const handleDateSelection = (date) => {
     setSelectedDate(date);
@@ -70,7 +43,7 @@ const ActivityOverview = ({ navigation }) => {
     setModalVisible(true);
   };
 
-  const groupedData = groupDataByDate();
+  const groupedData = groupDataByDate(trackingData);
 
   const renderItem = ({ item }) => {
     if (!item) return null;
@@ -160,16 +133,7 @@ const ActivityOverview = ({ navigation }) => {
     </View>
   );
 
-  // Bar Chart Data
-  const getBarChartData = () => {
-    const messageCount = trackingData.filter(item => item.event_type === "message").length;
-    const callCount = trackingData.filter(item => item.event_type === "phone_call").length;
-    const notificationCount = trackingData.filter(item => item.event_type === "notification_received").length;
-
-    return { messageCount, callCount, notificationCount };
-  };
-
-  const { messageCount, callCount, notificationCount } = getBarChartData();
+  const { messageCount, callCount, notificationCount } = getBarChartData(trackingData);
   const maxCount = Math.max(messageCount, callCount, notificationCount);
 
   const screenWidth = Dimensions.get("window").width; 
@@ -189,67 +153,75 @@ const ActivityOverview = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Back Button */}
+    <View style={{ backgroundColor: "#fff" }}>
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{previousRouteName || "Back"}</Text>
       </TouchableOpacity>
 
-      {/* Header Card */}
-      <Card style={styles.card}>
-        <Card.Content style={styles.cardContent}>
-          <Icon name="align-vertical-bottom" size={50} style={styles.icon} />
-          <Title style={styles.title}>Drunk Mode Activity</Title>
-          <Paragraph style={styles.paragraph}>
-            Track your activities while Drunk Mode is enabled, including messages, calls, and more.
-          </Paragraph>
-        </Card.Content>
-      </Card>
+      <FlatList
+        contentContainerStyle={styles.container}
+        data={Object.keys(groupedData)}
+        keyExtractor={(item) => item}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.dateSection}
+            onPress={() => handleDateSelection(item)}
+          >
+            <Text style={styles.dateText}>{item} Activity</Text>
+            <Ionicons name="chevron-down" size={20} color="#007bff" />
+          </TouchableOpacity>
+        )}
+        ListHeaderComponent={
+          <>
+            <Card style={styles.card}>
+              <Card.Content style={styles.cardContent}>
+                <Icon name="align-vertical-bottom" size={50} style={styles.icon} />
+                <Title style={styles.title}>Drunk Mode Activity</Title>
+                <Paragraph style={styles.paragraph}>
+                  Track your activities while Drunk Mode is enabled, including messages, calls, and more.
+                </Paragraph>
+              </Card.Content>
+            </Card>
 
-      {/* Date Section */}
-      {renderDateSection()}
+            <Card style={styles.chartCard}>
+              <Card.Content style={styles.cardContent}>
+                <Text style={styles.chartTitle}>Activity Summary</Text>
+                <Svg height={chartHeight} width={chartWidth}>
+                  <Rect
+                    x={0}
+                    y={chartHeight - (messageCount / maxCount) * chartHeight}
+                    width={barWidth}
+                    height={(messageCount / maxCount) * chartHeight}
+                    fill="skyblue"
+                  />
+                  <Rect
+                    x={barWidth + spacing}
+                    y={chartHeight - (callCount / maxCount) * chartHeight}
+                    width={barWidth}
+                    height={(callCount / maxCount) * chartHeight}
+                    fill="green"
+                  />
+                  <Rect
+                    x={(barWidth + spacing) * 2}
+                    y={chartHeight - (notificationCount / maxCount) * chartHeight}
+                    width={barWidth}
+                    height={(notificationCount / maxCount) * chartHeight}
+                    fill="coral"
+                  />
+                </Svg>
+                <View style={styles.chartLabels}>
+                  <Text style={styles.chartLabel}>Messages</Text>
+                  <Text style={styles.chartLabel}>Calls</Text>
+                  <Text style={styles.chartLabel}>Notifications</Text>
+                </View>
+              </Card.Content>
+            </Card>
+          </>
+        }
+        ListFooterComponent={<View style={{ marginBottom: 60 }} />}
+      />
 
-      {/* Bar Chart Card */}
-      <Card style={styles.chartCard}>
-        <Card.Content style={styles.cardContent}>
-          <Text style={styles.chartTitle}>Activity Summary</Text>
-          <Svg height={chartHeight} width={chartWidth}>
-            {/* Messages Bar */}
-            <Rect
-              x={0} // Position of the first bar
-              y={chartHeight - (messageCount / maxCount) * chartHeight}
-              width={barWidth}
-              height={(messageCount / maxCount) * chartHeight}
-              fill="skyblue"
-            />
-            {/* Calls Bar */}
-            <Rect
-              x={barWidth + spacing} // Position of the second bar
-              y={chartHeight - (callCount / maxCount) * chartHeight}
-              width={barWidth}
-              height={(callCount / maxCount) * chartHeight}
-              fill="green"
-            />
-            {/* Notifications Bar */}
-            <Rect
-              x={(barWidth + spacing) * 2} // Position of the third bar
-              y={chartHeight - (notificationCount / maxCount) * chartHeight}
-              width={barWidth}
-              height={(notificationCount / maxCount) * chartHeight}
-              fill="coral"
-            />
-          </Svg>
-          {/* Labels for the Bars */}
-          <View style={styles.chartLabels}>
-            <Text style={styles.chartLabel}>Messages</Text>
-            <Text style={styles.chartLabel}>Calls</Text>
-            <Text style={styles.chartLabel}>Notifications</Text>
-          </View>
-        </Card.Content>
-      </Card>
-
-      {/* Modal for detailed activities */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -266,10 +238,10 @@ const ActivityOverview = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: "#fff",
-    paddingTop: 50,
     paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 100,
   },
   title: {
     fontSize: 28,
@@ -297,7 +269,6 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 5,
     color: "#333",
   },
   eventText: {
@@ -328,7 +299,7 @@ const styles = StyleSheet.create({
   },
   dateSection: {
     padding: 15,
-    marginVertical: 10,
+    marginVertical: 20,
     backgroundColor: "#f0f0f0",
     borderRadius: 10,
     flexDirection: "row",
@@ -344,6 +315,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
+    marginBottom: 40,
   },
   chartTitle: {
     fontSize: 18,
@@ -420,6 +392,7 @@ const styles = StyleSheet.create({
     color: "#555",
     marginBottom: 5,
     lineHeight: 20,
+
   },
   
   modalItemLabel: {
@@ -440,9 +413,9 @@ const styles = StyleSheet.create({
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    position: 'absolute',
-    top: 20,
-    left: 20,
+    padding: 10,
+    marginTop: 10,
+    marginLeft: 10,
   },
   backButtonText: {
     fontSize: 18,

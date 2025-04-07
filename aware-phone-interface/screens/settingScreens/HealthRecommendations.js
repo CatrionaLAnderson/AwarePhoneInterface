@@ -92,9 +92,9 @@ const HealthRecommendations = ({ navigation }) => {
             <Title>Recommended Alcohol Intake</Title>
             <Paragraph>Based on your BMI, you should drink no more than {alcoholUnits} units per session.</Paragraph>
             <Paragraph>For reference, 3 units is roughly equivalent to:</Paragraph>
-            <List.Item title="A pint of beer (around 4%)" left={() => <Ionicons name="beer" size={24} />} />
-            <List.Item title="A large glass of wine (250ml, 12%)" left={() => <Ionicons name="wine" size={24} />} />
-            <List.Item title="A double shot of spirits (50ml, 40%)" left={() => <Ionicons name="cup" size={24} />} />
+            <List.Item title="Pint of beer (around 4%)" left={() => <Ionicons name="beer" size={24} />} />
+            <List.Item title="Large glass of wine (250ml, 12%)" left={() => <Ionicons name="wine" size={24} />} />
+            <List.Item title="Double shot of spirits (50ml, 40%)" left={() => <Ionicons name="pint-outline" size={24} />} />
           </Card.Content>
         </Card>
       )}

@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import {
-  View,
+  ScrollView,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Switch,
-  FlatList,
+  View
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { fetchContactsWithRestrictions, toggleContactRestriction } from "@/services/ContactService";
+import { Card, Title, Paragraph, List } from "react-native-paper";
 
 const ContactRestrictions = ({ navigation }) => {
   const [contacts, setContacts] = useState([]);
@@ -41,35 +41,54 @@ const ContactRestrictions = ({ navigation }) => {
     }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.item}>
-      <View>
-        <Text style={styles.itemText}>{item.name || "Unknown Contact"}</Text>
-        {item.phoneNumber ? <Text style={styles.phoneText}>{item.phoneNumber}</Text> : null}
-      </View>
-      <Switch value={item.isBlocked} onValueChange={(value) => handleToggle(item.id, value)} />
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Contact Restrictions</Text>
+    <ScrollView style={styles.container}>
 
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="blue" />
         <Text style={styles.backButtonText}>{previousRouteName}</Text>
       </TouchableOpacity>
 
-      <View style={styles.contactSelection}>
-        {loading ? (
-          <ActivityIndicator size="large" color="blue" />
-        ) : contacts.length === 0 ? (
-          <Text style={styles.noContactsText}>No contacts found.</Text>
-        ) : (
-          <FlatList data={contacts} renderItem={renderItem} keyExtractor={(item) => item.id} />
-        )}
-      </View>
-    </View>
+
+
+            {/* Header Card */}
+            <Card style={styles.card}>
+              <Card.Content style={styles.cardContent}>
+                <Ionicons name="notifications" size={50} style={styles.icon} />
+                <Title style={styles.title}>Contact Restrictions</Title>
+                <Paragraph style={styles.paragraph}>
+                  Select which notifications you want to receive/block when Drunk Mode is enabled.
+                </Paragraph>
+              </Card.Content>
+            </Card>
+
+      {loading ? (
+        <Text style={styles.loadingText}>Loading...</Text>
+      ) : contacts.length === 0 ? (
+        <Text style={styles.noDataText}>No contacts found.</Text>
+      ) : (
+        <View style={styles.listSection}>
+          <List.Section>
+            {contacts.map((contact) => (
+              <List.Item
+                key={contact.id}
+                title={contact.name || "Unknown Contact"}
+                description={contact.phoneNumber || "No phone number"}
+                titleStyle={styles.listTitle}
+                descriptionStyle={styles.listDescription}
+                style={styles.listItem}
+                right={() => (
+                  <Switch
+                    value={contact.isBlocked}
+                    onValueChange={(value) => handleToggle(contact.id, value)}
+                  />
+                )}
+              />
+            ))}
+          </List.Section>
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
@@ -80,11 +99,28 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingLeft: 15,
   },
+  card: {
+    marginTop: 60,
+    marginVertical: 16,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    padding: 16,
+  },
+  cardContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  icon: {
+    marginBottom: 10,
+  },
   title: {
-    fontSize: 30,
+    fontSize: 20,
     fontWeight: 'bold',
-    paddingTop: 60,
-    paddingBottom: 10,
+    textAlign: 'center',
+  },
+  paragraph: {
+    fontSize: 16,
+    textAlign: 'center',
   },
   backButton: {
     flexDirection: 'row',
@@ -98,24 +134,40 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     color: 'blue',
   },
-  contactSelection: {
-    marginTop: 20,
-  },
-  item: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  itemText: {
-    fontSize: 18,
-  },
-  noContactsText: {
-    fontSize: 16,
+  loadingText: {
     textAlign: 'center',
+    marginVertical: 10,
+  },
+  noDataText: {
+    textAlign: 'center',
+    marginVertical: 10,
+    fontSize: 16,
     color: 'gray',
+  },
+  listSection: {
+    marginVertical: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  listItem: {
+    backgroundColor: '#fff',
+    marginVertical: 5,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  listTitle: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  listDescription: {
+    color: 'gray',
+    fontSize: 14,
   },
 });
 

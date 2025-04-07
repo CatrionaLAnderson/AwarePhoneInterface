@@ -15,5 +15,8 @@ export const fuzzyCorrectWord = (word: string): string => {
     }
   });
 
+  if (word[0] === word[0].toUpperCase()) {
+    return closestMatch.charAt(0).toUpperCase() + closestMatch.slice(1);
+  }
   return closestMatch;
 };

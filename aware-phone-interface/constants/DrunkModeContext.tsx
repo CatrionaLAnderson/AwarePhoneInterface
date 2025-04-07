@@ -3,11 +3,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import {
   scheduleTimedNotification,
-  notifyAutoCorrectUsage,
   scheduleAutoCorrectReminder,
 } from "@/services/NotificationService2";
 import { logTrackingEvent, startDrunkModeSession, endDrunkModeSession } from "../services/GlobalTracking";
 import TrackingOverviewModal from "@/components/TrackingOverviewModal";
+import { supabase } from "../lib/supabase";
+import { sendNotification } from "@/services/NotificationService2";
 
 // TypeScript Interface for drunk mode context
 interface DrunkModeContextType {
@@ -51,6 +52,15 @@ export const DrunkModeProvider = ({ children }: { children: React.ReactNode }) =
           scheduleAutoCorrectReminder(); // Auto-correct reminder after 5 min
           await startDrunkModeSession(); // Start tracking session
           await logTrackingEvent({ event_type: 'drunk_mode', event_detail: 'activated' });
+          
+          const { data, error } = await supabase.from('timed_alerts').select('*');
+          if (error) {
+            console.error('❌ Failed to fetch saved alerts:', error);
+          } else {
+            for (const alert of data) {
+              await sendNotification(alert.name, alert.message);
+            }
+          }
         } else {
           await Notifications.cancelAllScheduledNotificationsAsync();
           await endDrunkModeSession(); // End tracking session

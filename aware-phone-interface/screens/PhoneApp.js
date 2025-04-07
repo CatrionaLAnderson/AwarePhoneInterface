@@ -6,6 +6,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useDrunkMode } from "@/constants/DrunkModeContext"; // Import Drunk Mode context
 import { fetchContactsWithRestrictions } from "@/services/ContactService"; // Import contact service
 import { logTrackingEvent } from "@/services/GlobalTracking"; // Import tracking service
+import { logCallTrackingEvent } from "@/services/communicationService"; // Import logCallTrackingEvent
 
 const PhoneApp = ({ navigation }) => {
   const { isDrunkMode } = useDrunkMode(); // Use global drunk mode state
@@ -38,12 +39,7 @@ const PhoneApp = ({ navigation }) => {
   
     // Log the phone call event when the call button is clicked
     if (contact) {
-      await logTrackingEvent({
-        event_type: "phone_call",
-        event_detail: `Call to ${contact.name}`,
-        contact_name: contact.name,
-        timestamp: new Date().toISOString(),
-      });
+      await logCallTrackingEvent(contact.name);
     }
   };
 

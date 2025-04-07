@@ -44,7 +44,7 @@ const DrunkModeScreen = ({ navigation }) => {
           <Ionicons name="beer" size={50} style={styles.icon} />
           <Title style={styles.title}>Drunk Mode</Title>
           <Paragraph style={styles.paragraph}>
-            Here there will be a description explaining what drunk mode is for.
+            Customise your phone settings for when Drunk Mode is enabled.
           </Paragraph>
         </Card.Content>
       </Card>

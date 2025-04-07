@@ -5,8 +5,8 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useDrunkMode } from "@/constants/DrunkModeContext";
 import { fetchContactsWithRestrictions } from "@/services/ContactService";
-import { sendMessage } from "@/services/messagingService";
-import { logTrackingEvent } from '@/services/GlobalTracking';
+import { sendMessage, logMessageTrackingEvent } from "@/services/communicationService";
+import DrunkDetectionService from "@/services/DrunkDetectionService";
 
 const MessagingApp = ({ navigation }) => {
   const { isDrunkMode } = useDrunkMode();
@@ -18,6 +18,8 @@ const MessagingApp = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [previousText, setPreviousText] = useState("");
+  const [typoScore, setTypoScore] = useState(0);
 
   useEffect(() => {
     const loadContacts = async () => {
@@ -63,18 +65,13 @@ const MessagingApp = ({ navigation }) => {
     console.log(currentContact);  // Log currentContact to verify if contact_name exists
     
     const updatedMessages = sendMessage(message, messages, isDrunkMode);
+    const correctedMessage = updatedMessages[updatedMessages.length - 1]?.text || message;
     setMessages(updatedMessages);
     setMessage("");
   
     // Fetch contact name directly from currentContact (using `name` instead of `contact_name`)
-    if (currentContact && currentContact.name) {  // Use `name` instead of `contact_name`
-      await logTrackingEvent({
-        event_type: "message",
-        event_detail: `Message to ${currentContact.name || "Unknown"}`,  // Use `name` instead of `contact_name`
-        message_preview: message.slice(0, 50),
-        contact_name: currentContact.name || "Unknown",  // Use `name` here too
-        timestamp: new Date().toISOString(),
-      });
+    if (currentContact?.name) {
+      await logMessageTrackingEvent(currentContact.name, correctedMessage);
     } else {
       console.error("❌ No contact name found for the message event.");
     }
@@ -130,7 +127,21 @@ const MessagingApp = ({ navigation }) => {
               style={styles.input}
               placeholder="Type a message..."
               value={message}
-              onChangeText={setMessage}
+              onChangeText={(text) => {
+                setMessage(text);
+
+                const backspaceUsed = previousText.length > text.length;
+                const repeatedLetters = /(.)\1{2,}/.test(text);
+                let score = 0;
+                if (backspaceUsed) score += 1;
+                if (repeatedLetters) score += 1;
+                setTypoScore(score);
+                setPreviousText(text);
+                
+                if (text.length > 5) {
+                  DrunkDetectionService.startDetection({ typoScore: score });
+                }
+              }}
               onSubmitEditing={handleSendMessage}
             />
             <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>

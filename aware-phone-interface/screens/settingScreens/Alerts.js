@@ -1,24 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Keyboard, ScrollView, TouchableWithoutFeedback } from 'react-native';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { supabase } from '../../lib/supabase'; // Import your Supabase client
 import * as Notifications from 'expo-notifications';
+import { Card, Title, Paragraph } from "react-native-paper";
+import { useDrunkMode } from '../../constants/DrunkModeContext';
+import { triggerDrunkModeAlerts } from "../../services/NotificationService2";
+import { fetchAlertsFromDB, addOrUpdateAlert, deleteAlertFromDB } from "../../services/NotificationService2";
 
 const Alerts = ({ navigation }) => {
   const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || 'Back';
+  const { isDrunkMode } = useDrunkMode();
 
   const [alerts, setAlerts] = useState([]);
   const [alertName, setAlertName] = useState('');
-  const [alertTime, setAlertTime] = useState(''); // Store selected time
   const [alertContent, setAlertContent] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isTimePickerVisible, setTimePickerVisible] = useState(false); // Time picker state
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     requestNotificationPermissions();
     fetchAlerts();
   }, []);
+
+  useEffect(() => {
+    if (isDrunkMode) {
+      triggerDrunkModeAlerts();
+    }
+  }, [isDrunkMode]);
 
   const requestNotificationPermissions = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
@@ -29,86 +37,50 @@ const Alerts = ({ navigation }) => {
 
   const fetchAlerts = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('timed_alerts').select('*');
-    if (error) {
-      console.error('Error fetching alerts:', error);
-    } else {
-      setAlerts(data);
-    }
+    const data = await fetchAlertsFromDB();
+    setAlerts(data);
     setLoading(false);
   };
 
   const addAlert = async () => {
     Keyboard.dismiss();
 
-    if (alertName && alertTime && alertContent) {
-      console.log('Adding alert:', { alertName, alertTime, alertContent });
-
-      const { data, error } = await supabase
-        .from('timed_alerts')
-        .insert([{ name: alertName, alert_time: alertTime, message: alertContent }])
-        .select();
-
-      if (error) {
-        console.error('Error adding alert:', error);
-      } else if (data && data.length > 0) {
-        setAlerts((prevAlerts) => [...prevAlerts, ...data]);
-
-        // Convert HH:MM to a Date object for scheduling
-        const now = new Date();
-        const [hours, minutes] = alertTime.split(':').map(Number);
-        let scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
-
-        // If the time has already passed today, schedule it for tomorrow
-        if (scheduledTime <= now) {
-          scheduledTime.setDate(scheduledTime.getDate() + 1);
+    if (alertName && alertContent) {
+      const updatedAlert = await addOrUpdateAlert(alertName, alertContent, editingId);
+      if (updatedAlert) {
+        if (editingId) {
+          setAlerts(alerts.map(alert => alert.id === editingId ? updatedAlert : alert));
+          setEditingId(null);
+        } else {
+          setAlerts(prev => [...prev, updatedAlert]);
         }
-
-        console.log(`🔔 Scheduling notification for: ${scheduledTime}`);
-
-        // Schedule the notification
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: `Reminder: ${alertName}`,
-            body: alertContent,
-            sound: 'default',
-          },
-          trigger: { date: scheduledTime },
-        });
-
-        console.log('Notification scheduled successfully');
-
-        // Clear input fields
         setAlertName('');
-        setAlertTime('');
         setAlertContent('');
       }
     }
   };
 
-  const showTimePicker = () => setTimePickerVisible(true);
-  const hideTimePicker = () => setTimePickerVisible(false);
-
-  const handleConfirm = (time) => {
-    const formattedTime = time.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: false // Ensures 24-hour format
-    }); 
-    setAlertTime(formattedTime);
-    hideTimePicker();
+  const deleteAlert = async (id) => {
+    const success = await deleteAlertFromDB(id);
+    if (success) {
+      setAlerts(alerts.filter(alert => alert.id !== id));
+    }
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <ScrollView style={styles.container}>
-        {/* Header Section */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Alerts</Text>
-          <Text style={styles.headerDescription}>
-            Here is a description of what you can do with the alerts section
-          </Text>
-        </View>
+
+        {/* Header Card */}
+        <Card style={styles.card}>
+          <Card.Content style={styles.cardContent}>
+            <Ionicons name="notifications" size={50} style={styles.icon} />
+            <Title style={styles.title}>Alerts</Title>
+            <Paragraph style={styles.paragraph}>
+              Create and Schedule alerts for customised notifications during drunk mode.
+            </Paragraph>
+          </Card.Content>
+        </Card>
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="blue" />
@@ -121,15 +93,6 @@ const Alerts = ({ navigation }) => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Name</Text>
             <TextInput style={styles.input} placeholder="Enter alert name" value={alertName} onChangeText={setAlertName} />
-          </View>
-          
-          {/* Time Picker Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Time</Text>
-            <TouchableOpacity onPress={showTimePicker} style={styles.timePicker}>
-              <Text style={styles.timeText}>{alertTime || 'Select Time'}</Text>
-            </TouchableOpacity>
-            <DateTimePickerModal isVisible={isTimePickerVisible} mode="time" onConfirm={handleConfirm} onCancel={hideTimePicker} />
           </View>
 
           <View style={styles.inputGroup}>
@@ -149,8 +112,26 @@ const Alerts = ({ navigation }) => {
             alerts.map((item) => (
               <View key={item.id.toString()} style={styles.alertItem}>
                 <Text style={styles.alertLabel}>Name: <Text style={styles.alertValue}>{item.name}</Text></Text>
-                <Text style={styles.alertLabel}>Time: <Text style={styles.alertValue}>{item.alert_time}</Text></Text>
                 <Text style={styles.alertLabel}>Alert Content: <Text style={styles.alertValue}>{item.message}</Text></Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#e0f0ff', borderRadius: 20, padding: 6, marginRight: 10 }}
+                    onPress={() => {
+                      setAlertName(item.name);
+                      setAlertContent(item.message);
+                      setEditingId(item.id);
+                    }}
+                  >
+                    <Ionicons name="create-outline" size={20} color="#007BFF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#ffe0e0', borderRadius: 20, padding: 6 }}
+                    onPress={() => deleteAlert(item.id)}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
         </View>
@@ -166,22 +147,28 @@ const styles = StyleSheet.create({
     padding: 16 
   },
 
-  header: 
-  { marginTop: 60, 
-    marginBottom: 20, 
-    alignItems: 'center' 
+  card: {
+    marginTop: 60,
+    marginVertical: 16,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    padding: 16,
   },
-
-  headerTitle: { 
-    fontSize: 24, 
-    fontWeight: 'bold' 
+  cardContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  
-  headerDescription: 
-  { fontSize: 16, 
-    color: '#666', 
-    textAlign: 'center', 
-    marginTop: 8 
+  icon: {
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  paragraph: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 
   backButton: 
@@ -232,19 +219,6 @@ const styles = StyleSheet.create({
   multilineInput: 
   { height: 60, 
     textAlignVertical: 'top' 
-  },
-
-  timePicker: 
-  { backgroundColor: '#fff', 
-    padding: 12, 
-    borderWidth: 1, 
-    borderColor: '#ccc', 
-    borderRadius: 5 
-  },
-
-  timeText: 
-  { fontSize: 16, 
-    color: '#333' 
   },
 
   addButton: 

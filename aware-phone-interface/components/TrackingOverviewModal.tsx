@@ -17,6 +17,14 @@ interface TrackingOverviewModalProps {
   onClose: () => void;
 }
 
+const getIconName = (item: TrackingEvent) => {
+  if (item.event_type === "message") return "chatbubble";
+  if (item.event_type === "phone_call") return "call";
+  if (item.event_detail === "activated") return "checkmark-circle";
+  if (item.event_detail === "deactivated") return "close-circle";
+  return "alert-circle";
+};
+
 const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible, onClose }) => {
   const [trackingData, setTrackingData] = useState<TrackingEvent[]>([]);
   const [duration, setDuration] = useState<string | null>(null);
@@ -101,11 +109,7 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
       <View style={styles.item}>
         <View style={styles.eventHeader}>
           <Ionicons 
-            name={item.event_type === "message" ? "chatbubble" :
-                  item.event_type === "phone_call" ? "call" :
-                  item.event_detail === "activated" ? "checkmark-circle" :
-                  item.event_detail === "deactivated" ? "close-circle" :
-                  "alert-circle"}
+            name={getIconName(item)}
             size={20} 
             color="#007bff" 
           />

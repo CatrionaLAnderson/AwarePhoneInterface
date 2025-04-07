@@ -5,6 +5,7 @@ import {
   ScrollView,
   Switch,
   TouchableOpacity,
+  View,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Card, Title, Paragraph, List } from "react-native-paper";
@@ -63,18 +64,23 @@ const NotificationRestrictions = ({ navigation }) => {
       {loading ? <Text style={styles.loadingText}>Loading...</Text> : null}
 
       {/* Show list of apps with mute toggles */}
-      <List.Section>
-        {apps.map((app) => (
-          <List.Item
-            key={app.id}
-            title={app.name}
-            description={app.isMuted ? "Muted" : "Not Muted"}
-            right={() => (
-              <Switch value={app.isMuted} onValueChange={() => handleToggle(app.id, app.isMuted)} />
-            )}
-          />
-        ))}
-      </List.Section>
+      <View style={styles.listSection}>
+        <List.Section>
+          {apps.map((app) => (
+            <List.Item
+              key={app.id}
+              title={app.name}
+              description={app.isMuted ? "Muted" : "Not Muted"}
+              titleStyle={styles.listTitle}
+              descriptionStyle={styles.listDescription}
+              style={styles.listItem}
+              right={() => (
+                <Switch value={app.isMuted} onValueChange={() => handleToggle(app.id, app.isMuted)} />
+              )}
+            />
+          ))}
+        </List.Section>
+      </View>
     </ScrollView>
   );
 };
@@ -129,6 +135,31 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     fontSize: 16,
     color: 'gray',
+  },
+  listSection: {
+    marginVertical: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  listItem: {
+    backgroundColor: '#fff',
+    marginVertical: 5,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  listTitle: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  listDescription: {
+    color: 'gray',
+    fontSize: 14,
   },
 });
 

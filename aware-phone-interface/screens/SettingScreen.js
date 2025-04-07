@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Text, Searchbar, TouchableRipple } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useDrunkMode } from '@/constants/DrunkModeContext';
 
 const SettingScreen = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = React.useState('');
+    const { isDrunkMode } = useDrunkMode();
 
     const settingsOptions = [
         { label: 'Wi-Fi', icon: 'wifi' },
@@ -48,6 +50,10 @@ const SettingScreen = ({ navigation }) => {
                         <TouchableRipple
                            onPress={() => {
                             if (option.label === 'Drunk Mode') {
+                                if (isDrunkMode) {
+                                  Alert.alert("Access Denied", "You can't access Drunk Mode settings while Drunk Mode is active.");
+                                  return;
+                                }
                                 navigation.navigate('DrunkModeSetting');
                             }
                         }}
