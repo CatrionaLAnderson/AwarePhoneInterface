@@ -12,31 +12,34 @@ export const sendNotification = async (title, body) => {
 
   // Log the notification event
   await logTrackingEvent({
-    event_type: "notification_received",
-    event_detail: title,
-    notification_content: body,
-    timestamp: new Date().toISOString(),
+    event_type: "notification_received", // Event type
+    event_detail: title, // Notification title
+    notification_content: body, // Notification body
+    timestamp: new Date().toISOString(), // Current timestamp
   });
 };
 
+// Trigger all saved drunk mode alerts and log them
 export const triggerDrunkModeAlerts = async () => {
   try {
     const { data, error } = await supabase.from("timed_alerts").select("*");
 
     if (error) {
-      console.error("❌ Failed to fetch saved alerts:", error);
+      console.error("❌ Failed to fetch saved alerts:", error); // Log error if fetching fails
       return;
     }
 
+    // Schedule notifications for each alert
     data.forEach((alert) => {
       Notifications.scheduleNotificationAsync({
         content: {
           title: alert.name,
           body: alert.message,
         },
-        trigger: null, 
+        trigger: null, // Send immediately
       });
 
+      // Log the notification event
       logTrackingEvent({
         event_type: "notification_received",
         event_detail: alert.name,
@@ -45,7 +48,7 @@ export const triggerDrunkModeAlerts = async () => {
       });
     });
   } catch (err) {
-    console.error("❌ Error triggering drunk mode alerts:", err);
+    console.error("❌ Error triggering drunk mode alerts:", err); // Log unexpected errors
   }
 };
 
@@ -66,9 +69,9 @@ export const scheduleTimedNotification = async (title, body, seconds) => {
   });
 };
 
-// Message Auto-Correct Trigger Notification and log it
+// Notify when auto-correct is triggered and log it
 export const notifyAutoCorrectUsage = async () => {
-  // Schedule the auto-correct notification
+  // Send the auto-correct notification
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "Drunk Mode Auto-Correct",
@@ -86,29 +89,30 @@ export const notifyAutoCorrectUsage = async () => {
   });
 };
 
-// Scheduled Auto-Correct Reminder and log it
+// Schedule a reminder for auto-correct and log it
 export const scheduleAutoCorrectReminder = async () => {
   // Schedule the reminder notification
   await scheduleTimedNotification(
     "Wallet & Keys Reminder",
     "👜 Drunk Mode here! Do you have your phone, keys, and wallet? Triple-check before moving!",
-    300
+    300 // Reminder after 5 minutes
   );
 };
 
-// Fetch all alerts from Supabase
+// Fetch all alerts from the database
 export const fetchAlertsFromDB = async () => {
   const { data, error } = await supabase.from("timed_alerts").select("*");
   if (error) {
-    console.error("❌ Error fetching alerts:", error);
+    console.error("❌ Error fetching alerts:", error); // Log error if fetching fails
     return [];
   }
-  return data;
+  return data; // Return fetched alerts
 };
 
-// Add new alert or update existing alert
+// Add or update an alert in the database
 export const addOrUpdateAlert = async (alertName, alertContent, id = null) => {
   if (id) {
+    // Update an existing alert
     const { data, error } = await supabase
       .from("timed_alerts")
       .update({ name: alertName, message: alertContent })
@@ -116,32 +120,33 @@ export const addOrUpdateAlert = async (alertName, alertContent, id = null) => {
       .select();
 
     if (error) {
-      console.error("❌ Error updating alert:", error);
+      console.error("❌ Error updating alert:", error); // Log error if update fails
       return null;
     }
 
-    return data[0];
+    return data[0]; // Return updated alert
   } else {
+    // Add a new alert
     const { data, error } = await supabase
       .from("timed_alerts")
       .insert([{ name: alertName, message: alertContent }])
       .select();
 
     if (error) {
-      console.error("❌ Error adding alert:", error);
+      console.error("❌ Error adding alert:", error); // Log error if insertion fails
       return null;
     }
 
-    return data[0];
+    return data[0]; // Return newly added alert
   }
 };
 
-// Delete alert by ID
+// Delete an alert by its ID
 export const deleteAlertFromDB = async (id) => {
   const { error } = await supabase.from("timed_alerts").delete().eq("id", id);
   if (error) {
-    console.error("❌ Error deleting alert:", error);
-    return false;
+    console.error("❌ Error deleting alert:", error); // Log error if deletion fails
+    return false; // Return false on error
   }
-  return true;
+  return true; // Return true on success
 };

@@ -2,29 +2,29 @@ import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DrunkModeModel from "../models/DrunkModeModel";
 
-//custom hook to manage the drunk mode state
+// Custom hook to manage the drunk mode state
 export default function useDrunkModeViewModel() {
-  const [drunkMode, setDrunkMode] = useState(new DrunkModeModel());
+  const [drunkMode, setDrunkMode] = useState(new DrunkModeModel()); // Initialize drunk mode state
 
   useEffect(() => {
     // Load Drunk Mode state from storage
     const loadState = async () => {
-      const savedState = await AsyncStorage.getItem("drunkMode");
+      const savedState = await AsyncStorage.getItem("drunkMode"); // Retrieve saved state
       if (savedState !== null) {
-        const isActive = JSON.parse(savedState);
+        const isActive = JSON.parse(savedState); // Parse saved state
         const model = new DrunkModeModel();
-        if (isActive) model.toggleDrunkMode();
-        setDrunkMode(model);
+        if (isActive) model.toggleDrunkMode(); // Activate drunk mode if saved state is active
+        setDrunkMode(model); // Update state in the UI
       }
     };
 
-    loadState();
+    loadState(); // Load state on component mount
   }, []);
 
-  //Function to toggle the drunk mode
+  // Function to toggle the drunk mode
   const toggleDrunkMode = async () => {
-    drunkMode.toggleDrunkMode(); //toggle state in model
-    setDrunkMode(new DrunkModeModel()); //update state in the UI
+    drunkMode.toggleDrunkMode(); // Toggle state in the model
+    setDrunkMode(new DrunkModeModel()); // Update state in the UI
 
     // Save state in storage
     await AsyncStorage.setItem("drunkMode", JSON.stringify(drunkMode.getStatus()));
@@ -33,15 +33,15 @@ export default function useDrunkModeViewModel() {
   // Function to activate drunk mode directly
   const activateDrunkMode = async () => {
     if (!drunkMode.getStatus()) {
-      drunkMode.toggleDrunkMode();
-      setDrunkMode(new DrunkModeModel());
-      await AsyncStorage.setItem("drunkMode", JSON.stringify(true));
+      drunkMode.toggleDrunkMode(); // Activate drunk mode in the model
+      setDrunkMode(new DrunkModeModel()); // Update state in the UI
+      await AsyncStorage.setItem("drunkMode", JSON.stringify(true)); // Save active state
     }
   };
 
   return {
-    isDrunkModeActive: drunkMode.getStatus(),
-    toggleDrunkMode,
-    activateDrunkMode,
+    isDrunkModeActive: drunkMode.getStatus(), // Check if drunk mode is active
+    toggleDrunkMode, // Function to toggle drunk mode
+    activateDrunkMode, // Function to activate drunk mode
   };
 }

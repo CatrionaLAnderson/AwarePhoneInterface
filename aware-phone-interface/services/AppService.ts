@@ -6,10 +6,10 @@ interface App {
   name: string;
   colour: string;
   icon: string;
-  isRestricted?: boolean;
+  isRestricted?: boolean; // Indicates if the app is restricted
 }
 
-// Fetch all apps from "apps" table (only once on Home Screen load)
+// Fetch all apps from the "apps" table
 export const fetchAllApps = async (): Promise<App[]> => {
   const { data, error } = await supabase
     .from("apps")
@@ -20,15 +20,16 @@ export const fetchAllApps = async (): Promise<App[]> => {
     return [];
   }
 
+  // Map database fields to App interface
   return data.map((app) => ({
     id: app.id,
     name: app.app_name,
-    colour: app.colour || "#707B7C",
-    icon: app.icon || "help",
+    colour: app.colour || "#707B7C", // Default colour if none provided
+    icon: app.icon || "help", // Default icon if none provided
   }));
 };
 
-// Fetch ONLY app restrictions and merge with existing apps
+// Fetch app restrictions and merge with existing apps
 export const fetchAppRestrictions = async (existingApps: App[]): Promise<App[]> => {
   const { data, error } = await supabase
     .from("app_restrictions")
@@ -36,7 +37,7 @@ export const fetchAppRestrictions = async (existingApps: App[]): Promise<App[]> 
 
   if (error) {
     console.error("Error fetching app restrictions:", error);
-    return existingApps; // Return previous apps if an error occurs
+    return existingApps; // Return existing apps if an error occurs
   }
 
   // Merge restriction data with existing apps
@@ -46,9 +47,11 @@ export const fetchAppRestrictions = async (existingApps: App[]): Promise<App[]> 
   }));
 };
 
+// Toggle restriction status for a specific app
 export const toggleAppRestriction = async (appId: string, isRestricted: boolean) => {
   console.log("Toggling restriction for:", appId, "New Status:", isRestricted);
 
+  // Check if a restriction entry already exists
   const { data: existingEntry, error: fetchError } = await supabase
     .from("app_restrictions")
     .select("id")
@@ -61,6 +64,7 @@ export const toggleAppRestriction = async (appId: string, isRestricted: boolean)
   }
 
   if (existingEntry) {
+    // Update existing restriction
     const { error: updateError } = await supabase
       .from("app_restrictions")
       .update({ is_restricted: isRestricted })
@@ -71,6 +75,7 @@ export const toggleAppRestriction = async (appId: string, isRestricted: boolean)
       return false;
     }
   } else {
+    // Insert new restriction
     const { error: insertError } = await supabase
       .from("app_restrictions")
       .insert([{ app_id: appId, is_restricted: isRestricted }]);
@@ -81,16 +86,17 @@ export const toggleAppRestriction = async (appId: string, isRestricted: boolean)
     }
   }
 
-  return true;
+  return true; // Return success
 };
 
-//Correctly export `subscribeToAppRestrictions`
+// Subscribe to real-time updates for app restrictions
 export const subscribeToAppRestrictions = (callback: () => void) => {
   const subscription = supabase
-    .channel("realtime_app_restrictions") // Give a unique name
+    .channel("realtime_app_restrictions") // Unique channel name
     .on("postgres_changes", { event: "*", schema: "public", table: "app_restrictions" }, callback)
     .subscribe();
 
+  // Return a function to unsubscribe
   return () => {
     supabase.removeChannel(subscription);
   };
