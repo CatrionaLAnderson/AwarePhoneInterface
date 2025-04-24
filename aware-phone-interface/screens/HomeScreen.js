@@ -7,8 +7,8 @@ import {
   FlatList,
   Dimensions,
   StatusBar,
-  ScrollView,
   Alert,
+  Modal,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -30,6 +30,9 @@ export default function HomeScreen() {
   const [apps, setApps] = useState([]); // Store the list of apps
   const [searchQuery, setSearchQuery] = useState(""); // Store the search query
   const [loading, setLoading] = useState(true); // Loading state
+  const [showBACModal, setShowBACModal] = useState(false);
+  const [drinkInput, setDrinkInput] = useState('');
+  const [bac, setBac] = useState(null);
 
   // Load all apps and their restrictions initially
   useEffect(() => {
@@ -82,7 +85,7 @@ export default function HomeScreen() {
 
   // Handlers for emergency actions (only show up when in Drunk Mode)
   const handleShareLocation = () => {
-    Alert.alert("Location Shared", "📍 Location shared with emergency contacts.", [{ text: "OK" }]);
+    Alert.alert("Details Shared", "📍 Location and Safety Prefrences Shared with Emergency Contact.", [{ text: "OK" }]);
   };
 
   const handleCall999 = () => {
@@ -145,7 +148,23 @@ export default function HomeScreen() {
       {/* Drunk Mode Toggle */}
       <View style={styles.drunkModeContainer}>
         <Text style={styles.drunkModeText}>Drunk Mode</Text>
-        <TouchableOpacity onPress={toggleDrunkMode} style={styles.drunkModeButton}>
+        <TouchableOpacity
+          onPress={() => {
+            if (isDrunkMode) {
+              Alert.alert(
+                "Disable Drunk Mode?",
+                "Are you sure you want to turn Drunk Mode off?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Turn Off", onPress: () => toggleDrunkMode() }
+                ]
+              );
+            } else {
+              toggleDrunkMode();
+            }
+          }}
+          style={styles.drunkModeButton}
+        >
           <Text style={styles.drunkModeButtonText}>{isDrunkMode ? "ON 🍻" : "OFF ❌"}</Text>
         </TouchableOpacity>
       </View>
@@ -179,24 +198,66 @@ export default function HomeScreen() {
 
       {/* Drunk Mode Buttons */}
       {isDrunkMode && (
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={styles.drunkButtonsContainer}
-        >
-          <View style={styles.drunkButtonWrapper}>
+        <View style={styles.drunkButtonsContainer}>
+          <View style={styles.drunkButtonRow}>
             <TouchableOpacity style={styles.drunkButton} onPress={handleShareLocation}>
-              <Text style={styles.drunkButtonText}>📍 Share Location</Text>
+              <Text style={styles.drunkButtonText}>📍 Share Safety Info</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.drunkButton} onPress={handleCall999}>
               <Text style={styles.drunkButtonText}>🚨 Call 999</Text>
             </TouchableOpacity>
+          </View>
+          <View style={styles.drunkButtonRow}>
             <TouchableOpacity style={styles.drunkButton} onPress={handleCallDriver}>
               <Text style={styles.drunkButtonText}>🚗 Call Driver</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.drunkButton} onPress={() => setShowBACModal(true)}>
+              <Text style={styles.drunkButtonText}>🧪 BAC Calculator</Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
+        </View>
       )}
+
+      <Modal visible={showBACModal} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>BAC Estimator</Text>
+            <View style={styles.stepperContainer}>
+              <Text style={styles.label}>Number of Drinks</Text>
+              <View style={styles.stepperRow}>
+                <TouchableOpacity onPress={() => setDrinkInput((prev) => String(Math.max((parseInt(prev) || 0) - 1, 0)))} style={styles.stepperButton}>
+                  <Text style={styles.stepperText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepperValue}>{drinkInput || '0'}</Text>
+                <TouchableOpacity onPress={() => setDrinkInput((prev) => String((parseInt(prev) || 0) + 1))} style={styles.stepperButton}>
+                  <Text style={styles.stepperText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.drunkButton}
+              onPress={() => {
+                const weight = 65; // TODO: fetch from Supabase
+                const drinks = parseFloat(drinkInput);
+                if (!isNaN(drinks)) {
+                  const bodyWater = 0.58;
+                  const metabolismRate = 0.015;
+                  const estimated = ((drinks * 10) / (weight * bodyWater) - metabolismRate).toFixed(3);
+                  setBac(Math.max(estimated, 0));
+                }
+              }}
+            >
+              <Text style={styles.drunkButtonText}>Estimate</Text>
+            </TouchableOpacity>
+            {bac !== null && (
+              <Text style={styles.bacResult}>Estimated BAC: {bac}%</Text>
+            )}
+            <TouchableOpacity onPress={() => setShowBACModal(false)} style={styles.drunkButton}>
+              <Text style={styles.drunkButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -286,30 +347,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   drunkButtonsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal:10,
+    marginHorizontal: 10,
   },
-  drunkButtonWrapper: {
+  drunkButtonRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
     alignItems: 'center',
+    marginBottom: 10,
   },
   drunkButton: {
-    backgroundColor: '#ff5e5e',
-    paddingHorizontal: 20,
-    paddingVertical: 15,   // Increased padding for better height
+    backgroundColor: 'red',
+    paddingHorizontal: 30,
+    paddingVertical: 20,
     borderRadius: 8,
-    marginHorizontal: 5,
+    marginVertical: 5,
     alignItems: 'center',
-    justifyContent: 'center',
-    height: 60,  // Set an explicit height for consistency
   },
   drunkButtonText: {
     color: 'white',
-    fontSize: 18,
-    textAlign: 'center',
+    fontSize: 16,
     fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  stepperContainer: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 5,
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperButton: {
+    backgroundColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    marginHorizontal: 10,
+  },
+  stepperText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  stepperValue: {
+    fontSize: 18,
+    fontWeight: '500',
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  bacResult: {
+    fontSize: 18,
+    marginTop: 10,
+    textAlign: 'center',
   },
 });

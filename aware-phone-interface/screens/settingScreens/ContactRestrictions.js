@@ -50,7 +50,7 @@ const ContactRestrictions = ({ navigation }) => {
           <Ionicons name="notifications" size={50} style={styles.icon} />
           <Title style={styles.title}>Contact Restrictions</Title>
           <Paragraph style={styles.paragraph}>
-            Select which notifications you want to receive/block when Drunk Mode is enabled.
+            Select which contacts you want to receive/block when Drunk Mode is enabled.
           </Paragraph>
         </Card.Content>
       </Card>

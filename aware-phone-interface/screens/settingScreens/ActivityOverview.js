@@ -68,9 +68,13 @@ const ActivityOverview = ({ navigation }) => {
             style={styles.modalItemIcon}
           />
           <Text style={styles.modalItemTitle}>
-            {item.event_type === "message" && "Message"}
-            {item.event_type === "phone_call" && "Phone Call"}
-            {item.event_type === "notification_received" && "Notification"}
+            {item.event_type === "message"
+              ? "Message"
+              : item.event_type === "phone_call"
+              ? "Phone Call"
+              : item.event_type === "notification_received"
+              ? "Notification"
+              : "Activity"}
           </Text>
         </View>
   
@@ -82,47 +86,30 @@ const ActivityOverview = ({ navigation }) => {
         {/* Event Details */}
         {item.event_type === "message" && item.message_preview && (
           <Text style={styles.modalItemContent}>
-           {item.message_preview || "No preview available"} {/* Show message preview */}
+            {String(item.message_preview || "No preview available")}
           </Text>
         )}
   
         {item.event_type === "phone_call" && (
           <Text style={styles.modalItemContent}>
-            {item.contact_name || "Unknown"} {/* Display the contact name for phone calls */}
+            {String(item.contact_name || "Unknown")}
           </Text>
         )}
   
         {item.event_type === "notification_received" && item.notification_content && (
           <Text style={styles.modalItemContent}>
-            {item.notification_content || "No content"} {/* Display notification content */}
+            {String(item.notification_content || "No content")}
           </Text>
         )}
       </View>
     );
   };
 
-  // Render the list of dates for which activity data is available
-  // const renderDateSection = () => (
-  //   <FlatList
-  //     data={Object.keys(groupedData)} // Get the keys (dates) from groupedData
-  //     keyExtractor={(item) => item}
-  //     renderItem={({ item }) => (
-  //       <TouchableOpacity
-  //         style={styles.dateSection}
-  //         onPress={() => handleDateSelection(item)} // Open modal for selected date
-  //       >
-  //         <Text style={styles.dateText}>{item} Activity</Text>
-  //         <Ionicons name="chevron-down" size={20} color="#007bff" />
-  //       </TouchableOpacity>
-  //     )}
-  //   />
-  // );
-
   // Render content inside the modal for the selected date
   const renderModalContent = () => (
     <View style={styles.modalContent}>
       <Text style={styles.modalTitle}>Activities on {selectedDate}</Text>
-      <Text style={styles.dateText}>Total Activity: {dateData.length}</Text> {/* Display total activities */}
+      <Text style={styles.dateText}>Total Activity: {String(dateData.length)}</Text> {/* Display total activities */}
       <FlatList
         data={dateData} // Display activities for the selected date
         keyExtractor={(item) => item.id}

@@ -8,6 +8,7 @@ import { useDrunkMode } from '@/constants/DrunkModeContext'; // Access Drunk Mod
 const SettingScreen = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = React.useState(''); // State for search query
     const { isDrunkMode } = useDrunkMode(); // Access global Drunk Mode state
+    const searchPlaceholder = "Search"; // Define search placeholder
 
     // Settings options for the user, including icons and labels
     const settingsOptions = [
@@ -20,9 +21,9 @@ const SettingScreen = ({ navigation }) => {
         { label: 'Appearance', icon: 'palette' },
         { label: 'Control Centre', icon: 'remote' },
         { label: 'StandBy', icon: 'power' },
-        {label: 'Contacts', icon: 'contacts'},
-        {label: 'Location', icon: 'map-marker'},
-        {label: 'Apps', icon: 'apps'},
+        { label: 'Contacts', icon: 'contacts' },
+        { label: 'Location', icon: 'map-marker' },
+        { label: 'Apps', icon: 'apps' },
     ];
 
     // Get the previous route name for navigation (back button text)
@@ -31,7 +32,7 @@ const SettingScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                <Text style={styles.title}>Settings</Text>
+                <Text style={styles.title}>{'Settings'}</Text>
 
                 {/* Back Button & Title */}
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -41,7 +42,7 @@ const SettingScreen = ({ navigation }) => {
 
                 {/* Search Bar */}
                 <Searchbar
-                    placeholder="Search"
+                    placeholder={searchPlaceholder}
                     onChangeText={setSearchQuery}
                     value={searchQuery}
                     style={{ marginBottom: 10, backgroundColor: 'lightgrey', borderRadius: 10 }}
@@ -51,7 +52,7 @@ const SettingScreen = ({ navigation }) => {
                 {settingsOptions.map((option, index) => (
                     <React.Fragment key={index}>
                         <TouchableRipple
-                           onPress={() => {
+                            onPress={() => {
                                 if (option.label === 'Drunk Mode') {
                                     // Show alert if Drunk Mode is active
                                     if (isDrunkMode) {
@@ -66,10 +67,12 @@ const SettingScreen = ({ navigation }) => {
                         >
                             <View style={styles.buttonContent}>
                                 <Icon name={option.icon} size={24} color="#000" style={styles.icon} />
-                                <Text style={styles.text}>{option.label}</Text>
+                                <Text style={styles.text}>
+                                    {option.label}
+                                </Text>
                             </View>
                         </TouchableRipple>
-                        {(index + 1) % 4 === 0 && <View style={styles.gap} />} {/* Add gap every 4 items */}
+                        {(index + 1) % 4 === 0 && <React.Fragment key={`gap-${index}`}><View style={styles.gap} /></React.Fragment>}
                     </React.Fragment>
                 ))}
             </ScrollView>
@@ -118,13 +121,13 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         justifyContent: 'center',
         borderColor: 'lightgrey',
-        borderWidth:1,
-      },
-      buttonContent: {
+        borderWidth: 1,
+    },
+    buttonContent: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 10,
-      },
+    },
     icon: {
         marginRight: 10,
     },

@@ -10,6 +10,7 @@ interface TrackingEvent {
   event_detail: string;
   contact_name?: string;
   message_preview?: string;
+  notification_content?: string; 
   timestamp: string;
 }
 
@@ -23,6 +24,7 @@ interface TrackingOverviewModalProps {
 const getIconName = (item: TrackingEvent) => {
   if (item.event_type === "message") return "chatbubble";
   if (item.event_type === "phone_call") return "call";
+  if (item.event_type === "notification_received") return "notifications";
   if (item.event_detail === "activated") return "checkmark-circle";
   if (item.event_detail === "deactivated") return "close-circle";
   return "alert-circle"; // Default icon for other events
@@ -48,6 +50,8 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
           console.error("Error fetching Drunk Mode activation data:", activatedError);
           return;
         }
+        console.log("Drunk Mode ACTIVATED Query Result:", drunkModeActivatedData);
+        console.log("Activated error:", activatedError);
   
         // Fetch the most recent Drunk Mode deactivation event
         const { data: drunkModeDeactivatedData, error: deactivatedError } = await supabase
@@ -62,24 +66,36 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
           console.error("Error fetching Drunk Mode deactivation data:", deactivatedError);
           return;
         }
+        console.log("Drunk Mode DEACTIVATED Query Result:", drunkModeDeactivatedData);
+        console.log("Deactivated error:", deactivatedError);
   
+        // Guard clause for missing activation or deactivation data
+        if (!drunkModeActivatedData?.length || !drunkModeDeactivatedData?.length) {
+          console.warn("Missing activation or deactivation data. Skipping tracking data fetch.");
+          return;
+        }
         // Get the timestamps of activation and deactivation
         const activationTimestamp = new Date(drunkModeActivatedData[0].timestamp).toISOString();
-        const deactivationTimestamp = new Date(drunkModeDeactivatedData[0].timestamp).toISOString();
+        const deactivationBuffer = new Date(new Date(drunkModeDeactivatedData[0].timestamp).getTime() + 5000); // +5 seconds
+        const deactivationTimestamp = deactivationBuffer.toISOString();
 
         // Fetch messages and phone calls that happened between activation and deactivation
         const { data: messageData, error: messageError } = await supabase
           .from("tracking_data")
           .select("*")
-          .or('event_type.eq.message,event_type.eq.phone_call') // Include messages and phone calls
+          .or('event_type.eq.message,event_type.eq.phone_call,event_type.eq.notification_received,event_type.eq.notification,event_type.eq.system_notification') // Include messages, phone calls, and notifications
           .gt("timestamp", activationTimestamp) // After activation
           .lt("timestamp", deactivationTimestamp) // Before deactivation
           .order("timestamp", { ascending: true });
+        console.log("ALL messageData:", messageData);
 
         if (messageError) {
           console.error("Error fetching message and phone call data:", messageError);
           return;
         }
+        console.log("Activated:", drunkModeActivatedData);
+        console.log("Deactivated:", drunkModeDeactivatedData);
+        console.log("Notifications in range:", messageData.filter(i => i.event_type === "notification_received"));
   
         // Combine Drunk Mode, message, and phone call data
         const allData = [
@@ -118,15 +134,19 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
             color="#007bff"
           />
           <Text style={styles.eventType}>
-            {item.event_type === "message"
-              ? `Message to ${item.contact_name || "Unknown"}`
-              : item.event_type === "phone_call"
-              ? `Call to ${item.contact_name || "Unknown"}`
-              : item.event_detail === "activated"
-              ? "Drunk Mode Activated"
-              : item.event_detail === "deactivated"
-              ? "Drunk Mode Deactivated"
-              : item.event_detail}
+            {String(
+              item.event_type === "message"
+                ? `Message to ${item.contact_name || "Unknown"}`
+                : item.event_type === "phone_call"
+                ? `Call to ${item.contact_name || "Unknown"}`
+                : item.event_type === "notification_received"
+                ? "Notification Received"
+                : item.event_detail === "activated"
+                ? "Drunk Mode Activated"
+                : item.event_detail === "deactivated"
+                ? "Drunk Mode Deactivated"
+                : item.event_detail || ""
+            )}
           </Text>
         </View>
 
@@ -139,6 +159,12 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
         {item.event_type === "phone_call" && (
           <Text style={styles.messagePreview}>
             Phone call to: {item.contact_name}
+          </Text>
+        )}
+
+        {item.event_type.includes("notification") && (
+          <Text style={styles.messagePreview}>
+            Notification: {item.notification_content || item.event_detail || "No details"}
           </Text>
         )}
 
@@ -158,7 +184,7 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
         <View style={styles.modalContent}>
           <Text style={styles.title}>Drunk Mode Activity</Text>
           {duration && (
-            <Text style={styles.duration}>Duration: {duration}</Text> // Display duration if available
+            <Text style={styles.duration}>Duration: {duration}</Text>
           )}
           <FlatList
             data={trackingData} // Display tracking data in a list
@@ -167,7 +193,7 @@ const TrackingOverviewModal: React.FC<TrackingOverviewModalProps> = ({ isVisible
             contentContainerStyle={styles.list}
           />
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Close</Text> {/* Close button */}
+            <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>

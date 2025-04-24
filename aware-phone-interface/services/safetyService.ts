@@ -12,8 +12,7 @@ export const fetchSafetySettings = async (): Promise<SafetySettings> => {
   const { data, error } = await supabase
     .from("safety_settings")
     .select("*")
-    .order("id", { ascending: false }) // Fetch the latest row
-    .limit(1) // Only fetch one row
+    .eq("id", 1)
     .single(); // Return an object instead of an array
 
   if (error) {
@@ -30,13 +29,17 @@ export const saveSafetySettings = async (
   driverId: string | null,
   transportMode: string | null
 ): Promise<boolean> => {
-  const { error } = await supabase.from("safety_settings").upsert([
-    {
-      emergency_contact_id: emergencyContactId, // Save emergency contact ID
-      designated_driver_id: driverId, // Save designated driver ID
-      transport_mode: transportMode, // Save preferred transport mode
-    },
-  ]);
+  const { error } = await supabase.from("safety_settings").upsert(
+    [
+      {
+        id: 1,
+        emergency_contact_id: emergencyContactId, // Save emergency contact ID
+        designated_driver_id: driverId, // Save designated driver ID
+        transport_mode: transportMode, // Save preferred transport mode
+      },
+    ],
+    { onConflict: "id" }
+  );
 
   if (error) {
     console.error("Error saving safety settings:", error); // Log error if saving fails

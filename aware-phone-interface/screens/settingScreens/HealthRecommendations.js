@@ -2,25 +2,36 @@ import React, {useState} from 'react';
 import {Text, StyleSheet, ScrollView, TouchableOpacity, TextInput} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {Card, Title, Paragraph, List} from 'react-native-paper';
+import { supabase } from '../../lib/supabase';
 
 const HealthRecommendations = ({navigation}) => {
   const previousRouteName =
     navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
-  // State variables for weight, height, BMI, alcohol units, and BAC
+  // State variables for weight, height, and BMI
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [bmi, setBmi] = useState(null);
   const [alcoholUnits, setAlcoholUnits] = useState(null);
-  const [bac, setBac] = useState(null);
 
   // Calculate BMI based on user input
-  const calculateBMI = () => {
+  const calculateBMI = async () => {
     if (weight && height) {
       const heightMeters = height / 100;
       const bmiValue = (weight / (heightMeters * heightMeters)).toFixed(2);
       setBmi(bmiValue);
       calculateAlcoholUnits(bmiValue); // Calculate alcohol units based on BMI
+
+      await supabase
+        .from('user_health_data')
+        .upsert([{ weight, height }])
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error saving data to Supabase:', error);
+          } else {
+            console.log('Health data saved to Supabase');
+          }
+        });
     }
   };
 
@@ -28,16 +39,6 @@ const HealthRecommendations = ({navigation}) => {
   const calculateAlcoholUnits = (bmiValue) => {
     let recommendedUnits = bmiValue < 18.5 ? 2 : bmiValue > 25 ? 4 : 3;
     setAlcoholUnits(recommendedUnits); // Set recommended units
-  };
-
-  // Estimate BAC based on the number of drinks consumed
-  const calculateBAC = (drinks) => {
-    if (weight) {
-      const bodyWater = 0.58; // Average body water content
-      const metabolismRate = 0.015; // Metabolism rate
-      const bacValue = ((drinks * 10) / (weight * bodyWater) - metabolismRate).toFixed(3);
-      setBac(Math.max(bacValue, 0)); // Prevent BAC from being negative
-    }
   };
 
   return (
@@ -76,7 +77,7 @@ const HealthRecommendations = ({navigation}) => {
         onChangeText={setHeight} // Set height state
       />
       <TouchableOpacity style={styles.button} onPress={calculateBMI}>
-        <Text style={styles.buttonText}>Calculate BMI</Text>
+        <Text style={styles.buttonText}>Calculate & Save BMI</Text>
       </TouchableOpacity>
       {bmi && <Text style={styles.resultText}>Your BMI: {bmi}</Text>}
 
@@ -93,16 +94,6 @@ const HealthRecommendations = ({navigation}) => {
           </Card.Content>
         </Card>
       )}
-
-      {/* BAC Estimation Section */}
-      <Text style={styles.sectionTitle}>Blood Alcohol Content (BAC) Estimation</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter number of drinks consumed"
-        keyboardType="numeric"
-        onChangeText={(drinks) => calculateBAC(parseFloat(drinks))} // Calculate BAC based on drinks consumed
-      />
-      {bac !== null && <Text style={styles.resultText}>Estimated BAC: {bac}%</Text>}
 
       {/* Smart Drinking Tips Section */}
       <List.Section>

@@ -76,7 +76,7 @@ const DrunkModeScreen = ({ navigation }) => {
           >
             <View style={styles.buttonContent}>
               <Icon name={option.icon} size={24} color="#000" style={styles.icon} />
-              <Text style={styles.text}>{option.label}</Text>
+              <Text style={styles.text}>{String(option.label)}</Text>
               <Ionicons name="arrow-forward" size={24} color="lightgrey" style={styles.icon2} />
             </View>
           </TouchableRipple>

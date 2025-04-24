@@ -1,72 +1,86 @@
 import { Accelerometer } from 'expo-sensors';
 import { Alert } from 'react-native';
 
+// This should come from your actual global state or context
+const isDrunkModeActive = true; // Replace with real check
+
 type DetectionOptions = {
   typoScore: number; // Score based on typing errors
 };
 
 class DrunkDetectionService {
-  private shakeScore = 0; // Tracks shake intensity
-  private subscription: any; // Accelerometer subscription
-  private detectionInProgress = false; // Prevents multiple detections at once
+  private shakeScore = 0;
+  private typoScore = 0;
+  private timeScore = 0;
+  private subscription: any;
+  private detectionTriggered = false;
 
-  // Start drunk detection process
+  // Call this when you want to start monitoring
   startDetection({ typoScore }: DetectionOptions) {
-    if (this.detectionInProgress) {
-      return; // Exit if detection is already in progress
+    if (!isDrunkModeActive) {
+      console.log("⛔ Drunk detection skipped — Drunk Mode is not active");
+      return;
     }
-
-    this.detectionInProgress = true;
-    this.shakeScore = 0; // Reset shake score
-    const timeScore = this.getTimeScore(); // Get score based on time
-    this.subscribeToAccelerometer(); // Start listening to accelerometer data
-
-    // Stop detection after 5 seconds
-    setTimeout(() => {
-      this.unsubscribe(); // Stop accelerometer subscription
-      const totalScore = timeScore + typoScore + this.shakeScore; // Calculate total score
-
-      // Trigger alert if total score exceeds threshold
-      if (totalScore >= 3) {
-        setTimeout(() => {
-          Alert.alert("Are you drunk?", "Maybe turn on your drunk mode to keep you safe :)");
-        }, 0);
-      }
-
-      this.detectionInProgress = false; // Reset detection flag
-    }, 5000); // Wait 5 seconds for shake data
+  
+    console.log("🟢 Drunk detection started with typoScore:", typoScore);
+  
+    if (this.detectionTriggered) return;
+  
+    this.typoScore = typoScore;
+    this.timeScore = this.getTimeScore();
+    this.shakeScore = 0;
+    this.detectionTriggered = false;
+  
+    this.subscribeToAccelerometer();
+    this.evaluateScore(); // Initial check
   }
 
-  // Calculate score based on time (higher score for weekend nights)
   private getTimeScore(): number {
     const now = new Date();
     const hour = now.getHours();
-    const day = now.getDay(); // 5 = Friday, 6 = Saturday
-    const isWeekendNight = (day === 5 || day === 6) && (hour >= 20 || hour <= 5); // Weekend night condition
-    return isWeekendNight ? 2 : 0; // Return 2 for weekend nights, 0 otherwise
+    const day = now.getDay();
+    const isWeekendNight = (day === 5 || day === 6) && (hour >= 20 || hour <= 5);
+    return isWeekendNight ? 2 : 0;
   }
 
-  // Subscribe to accelerometer to detect shakes
+  private evaluateScore() {
+    const totalScore = this.typoScore + this.timeScore + this.shakeScore;
+    console.log("🔍 Evaluating score:", {
+      typo: this.typoScore,
+      time: this.timeScore,
+      shake: this.shakeScore,
+      total: totalScore,
+    });
+  
+    if (totalScore >= 3 && !this.detectionTriggered) {
+      console.log("🚨 DRUNK DETECTION TRIGGERED");
+      this.detectionTriggered = true;
+      Alert.alert("Are you drunk?", "Maybe turn on your drunk mode to keep you safe :)");
+      this.unsubscribe();
+    }
+  }
+
   private subscribeToAccelerometer() {
-    this.unsubscribe(); // Ensure no duplicate subscriptions
+    this.unsubscribe(); // Ensure no duplicates
+
     try {
       this.subscription = Accelerometer.addListener(({ x, y, z }) => {
-        const magnitude = Math.sqrt(x * x + y * y + z * z); // Calculate shake magnitude
-        if (magnitude > 1.8) {
-          this.shakeScore = Math.min(this.shakeScore + 1, 3); // Increment shake score, cap at 3
+        const magnitude = Math.sqrt(x * x + y * y + z * z);
+        if (magnitude > 1.5) { // slightly more sensitive
+          this.shakeScore = Math.min(this.shakeScore + 1, 3);
+          this.evaluateScore(); // Re-check score each time a shake is detected
         }
       });
-      Accelerometer.setUpdateInterval(300); // Set update interval to 300ms
+      Accelerometer.setUpdateInterval(300);
     } catch (error) {
       console.error("Accelerometer subscription failed:", error);
     }
   }
 
-  // Unsubscribe from accelerometer
   private unsubscribe() {
     if (this.subscription && typeof this.subscription.remove === 'function') {
-      this.subscription.remove(); // Remove subscription
-      this.subscription = null; // Reset subscription
+      this.subscription.remove();
+      this.subscription = null;
     }
   }
 }
