@@ -25,7 +25,7 @@ export const triggerDrunkModeAlerts = async () => {
     const { data, error } = await supabase.from("timed_alerts").select("*");
 
     if (error) {
-      console.error("❌ Failed to fetch saved alerts:", error); // Log error if fetching fails
+      console.error("Failed to fetch saved alerts:", error); // Log error if fetching fails
       return;
     }
 
@@ -48,7 +48,7 @@ export const triggerDrunkModeAlerts = async () => {
       });
     });
   } catch (err) {
-    console.error("❌ Error triggering drunk mode alerts:", err); // Log unexpected errors
+    console.error("Error triggering drunk mode alerts:", err); // Log unexpected errors
   }
 };
 
@@ -103,7 +103,7 @@ export const scheduleAutoCorrectReminder = async () => {
 export const fetchAlertsFromDB = async () => {
   const { data, error } = await supabase.from("timed_alerts").select("*");
   if (error) {
-    console.error("❌ Error fetching alerts:", error); // Log error if fetching fails
+    console.error("Error fetching alerts:", error); // Log error if fetching fails
     return [];
   }
   return data; // Return fetched alerts
@@ -120,7 +120,7 @@ export const addOrUpdateAlert = async (alertName, alertContent, id = null) => {
       .select();
 
     if (error) {
-      console.error("❌ Error updating alert:", error); // Log error if update fails
+      console.error("Error updating alert:", error); // Log error if update fails
       return null;
     }
 
@@ -133,7 +133,7 @@ export const addOrUpdateAlert = async (alertName, alertContent, id = null) => {
       .select();
 
     if (error) {
-      console.error("❌ Error adding alert:", error); // Log error if insertion fails
+      console.error("Error adding alert:", error); // Log error if insertion fails
       return null;
     }
 
@@ -145,7 +145,7 @@ export const addOrUpdateAlert = async (alertName, alertContent, id = null) => {
 export const deleteAlertFromDB = async (id) => {
   const { error } = await supabase.from("timed_alerts").delete().eq("id", id);
   if (error) {
-    console.error("❌ Error deleting alert:", error); // Log error if deletion fails
+    console.error("Error deleting alert:", error); // Log error if deletion fails
     return false; // Return false on error
   }
   return true; // Return true on success

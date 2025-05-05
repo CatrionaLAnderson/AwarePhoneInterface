@@ -15,7 +15,7 @@ export const correctDrunkMessage = (message: string): string => {
 
   // Notify if corrections were made
   if (correctedMessage !== message) {
-    console.log("🛑 Drunk Mode Auto-Correct Triggered! Sending Notification...");
+    console.log("Drunk Mode Auto-Correct Triggered! Sending Notification...");
     notifyAutoCorrectUsage(); // Trigger the notification
   }
 

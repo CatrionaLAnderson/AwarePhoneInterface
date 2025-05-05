@@ -9,7 +9,7 @@ import { sendMessage, logMessageTrackingEvent } from "@/services/communicationSe
 import DrunkDetectionService from "@/services/DrunkDetectionService"; // Service to detect drunk typing behavior
 
 const MessagingApp = ({ navigation }) => {
-  const { isDrunkMode } = useDrunkMode(); // Drunk Mode context
+  const { isDrunkMode, toggleDrunkMode } = useDrunkMode(); 
   const previousRouteName = navigation.getState().routes[navigation.getState().index - 1]?.name || "Back";
 
   // State management
@@ -149,7 +149,11 @@ const MessagingApp = ({ navigation }) => {
                 setPreviousText(text);
                 
                 if (text.length > 5) {
-                  DrunkDetectionService.startDetection({ typoScore: score }); // Start detection if text length is more than 5
+                  DrunkDetectionService.startDetection({
+                    typoScore: score,
+                    isDrunkMode,               
+                    toggleDrunkMode,           
+                  });
                 }
               }}
               onSubmitEditing={handleSendMessage}

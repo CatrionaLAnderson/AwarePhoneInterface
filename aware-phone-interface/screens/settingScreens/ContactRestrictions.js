@@ -3,6 +3,7 @@ import { ScrollView, Text, StyleSheet, TouchableOpacity, Switch, View } from "re
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { fetchContactsWithRestrictions, toggleContactRestriction } from "@/services/ContactService";
 import { Card, Title, Paragraph, List } from "react-native-paper";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 const ContactRestrictions = ({ navigation }) => {
   const [contacts, setContacts] = useState([]); // State for storing contacts and their restriction status
@@ -47,7 +48,7 @@ const ContactRestrictions = ({ navigation }) => {
       {/* Header Card */}
       <Card style={styles.card}>
         <Card.Content style={styles.cardContent}>
-          <Ionicons name="notifications" size={50} style={styles.icon} />
+          <Icon name="contacts" size={50} style={styles.icon} />
           <Title style={styles.title}>Contact Restrictions</Title>
           <Paragraph style={styles.paragraph}>
             Select which contacts you want to receive/block when Drunk Mode is enabled.
